@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase-browser";
 
 export default function LoginForm({ next }: { next: string }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -32,10 +30,22 @@ export default function LoginForm({ next }: { next: string }) {
       return;
     }
 
-    // refresh() so the server components re-render with the new session
-    // cookie; push() alone can render the old signed-out tree.
-    router.push(next);
-    router.refresh();
+    /**
+     * Hard navigation, deliberately — not router.push().
+     *
+     * Two things break a client-side transition here. Next caches the RSC
+     * payload for /admin from when you were signed out (the response that
+     * redirected to this very page), so push() replays that cached redirect
+     * and you appear stuck on the login form. And the session cookie the
+     * Supabase browser client just wrote isn't reliably visible to the next
+     * server request yet — router.refresh() is supposed to bridge both, but
+     * it races with the push.
+     *
+     * A full page load has neither problem: the cookie goes out with the
+     * request and nothing is served from the client router cache. It costs
+     * one extra page load on an action that happens once a session.
+     */
+    window.location.assign(next);
   }
 
   return (
