@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase";
-import { updateInquiry } from "../actions";
+import { deleteInquiry, updateInquiry } from "../actions";
+import DeleteInquiryButton from "./delete-button";
 import ActionForm from "../save-button";
 
 export const dynamic = "force-dynamic";
@@ -123,6 +124,14 @@ export default async function InquiriesPage() {
                 </div>
               </div>
             </ActionForm>
+
+            <div className="mt-4 flex justify-end border-t border-white/10 pt-3">
+              <DeleteInquiryButton
+                id={inq.id}
+                name={inq.name}
+                action={deleteInquiry}
+              />
+            </div>
           </li>
         ))}
       </ul>
