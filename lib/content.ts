@@ -4,6 +4,26 @@
  * plausibly want to edit herself (demos, books) is in Supabase instead.
  */
 
+/** The one hostname that is allowed to be indexed. */
+export const PRODUCTION_HOST = "stephaniebetschart.com";
+
+const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+/**
+ * Whether this deployment is the real site.
+ *
+ * An unset NEXT_PUBLIC_SITE_URL counts as "no" on purpose. Metadata still
+ * falls back to the production domain — a canonical is better than none — but
+ * being indexed has to be opted into explicitly. Otherwise a *.vercel.app
+ * build gets crawled while canonicalising to a domain that is still serving
+ * somebody else's markup, which is how a preview quietly competes with the
+ * site it's meant to replace.
+ */
+export const IS_CANONICAL_HOST =
+  !!configuredUrl && URL.canParse(configuredUrl)
+    ? new URL(configuredUrl).host === PRODUCTION_HOST
+    : false;
+
 export const SITE = {
   name: "Depth & Dawn Audio",
   legalName: "Depth & Dawn Audio, LLC",
@@ -12,7 +32,7 @@ export const SITE = {
   tagline: "Every story deserves a heartbeat, and I give it a voice.",
   genres: ["Thrillers", "Romance", "Mystery", "Fantasy"],
   email: "stephaniebetschart1@gmail.com",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://stephaniebetschart.com",
+  url: configuredUrl || `https://${PRODUCTION_HOST}`,
 };
 
 export const NAV = [
