@@ -2,8 +2,8 @@ import About from "@/components/About";
 import BooksCarousel from "@/components/BooksCarousel";
 import DemoGrid from "@/components/DemoGrid";
 import Hero from "@/components/Hero";
-import { SITE, SOCIALS } from "@/lib/content";
 import { getPublishedBooks, getPublishedDemos } from "@/lib/queries.server";
+import { homepageJsonLd } from "@/lib/structured-data";
 
 // Content changes when Stephanie edits it in Supabase or the Audible pipeline
 // syncs, not on every request. Ten minutes keeps it fresh without making the
@@ -16,21 +16,7 @@ export default async function HomePage() {
     getPublishedBooks(),
   ]);
 
-  // Both names need to resolve to the same person in search results — that's
-  // the whole reason Ann Dahlia is mentioned on the page at all.
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: SITE.narrator,
-    alternateName: SITE.penName,
-    jobTitle: "Audiobook Narrator",
-    url: SITE.url,
-    email: `mailto:${SITE.email}`,
-    image: `${SITE.url}/headshot.jpg`,
-    worksFor: { "@type": "Organization", name: SITE.legalName },
-    knowsAbout: SITE.genres,
-    sameAs: SOCIALS.map((s) => s.href),
-  };
+  const jsonLd = homepageJsonLd(books, demos);
 
   return (
     <>

@@ -57,6 +57,13 @@ export default function DemoPlayer({
   const progress = duration > 0 ? (current / duration) * 100 : 0;
   const label = [demo.title, demo.title_secondary].filter(Boolean).join(" — ");
 
+  // duration_seconds comes from the database (see
+  // scripts/backfill-demo-durations.mjs), so the real length renders on the
+  // server before any audio is touched. If a demo hasn't been backfilled the
+  // browser fills it in on first play — until then, show elapsed time alone
+  // rather than a meaningless "0:00 / 0:00".
+  const knownDuration = duration > 0;
+
   return (
     <article
       className={`audio-card flex flex-col gap-2.5 rounded-[var(--radius-chip)] border border-white/10 bg-white/[0.06] p-2.5 shadow-[0_0_18px_rgba(0,0,0,0.25)] transition ${
@@ -112,17 +119,20 @@ export default function DemoPlayer({
         <input
           type="range"
           min={0}
-          max={duration || 0}
+          max={knownDuration ? duration : 1}
           step={0.1}
           value={current}
+          disabled={!knownDuration}
           onChange={(e) => seek(Number(e.target.value))}
           aria-label={`Seek within ${label}`}
-          className="demo-scrubber h-1.5 min-w-0 flex-1"
+          className="demo-scrubber h-1.5 min-w-0 flex-1 disabled:cursor-default disabled:opacity-50"
           style={{ ["--progress" as string]: `${progress}%` }}
         />
 
         <span className="shrink-0 font-mono text-[0.7rem] tabular-nums text-white/60">
-          {formatTime(current)} / {formatTime(duration)}
+          {knownDuration
+            ? `${formatTime(current)} / ${formatTime(duration)}`
+            : formatTime(current)}
         </span>
       </div>
 

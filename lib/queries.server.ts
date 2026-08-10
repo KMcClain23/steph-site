@@ -25,6 +25,36 @@ export async function getPublishedDemos(): Promise<Demo[]> {
   return data ?? [];
 }
 
+/**
+ * Newest updated_at across the content tables, for sitemap lastmod.
+ * Falls back to now() if the read fails — a slightly-too-recent lastmod is
+ * harmless, a missing one loses the signal entirely.
+ */
+export async function getContentLastModified(): Promise<Date> {
+  const supabase = createAnonSupabaseClient();
+  const [demos, books] = await Promise.all([
+    supabase
+      .from("demos")
+      .select("updated_at")
+      .eq("published", true)
+      .order("updated_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("books")
+      .select("updated_at")
+      .eq("published", true)
+      .order("updated_at", { ascending: false })
+      .limit(1),
+  ]);
+
+  const stamps = [demos.data?.[0]?.updated_at, books.data?.[0]?.updated_at]
+    .filter(Boolean)
+    .map((s) => new Date(s as string).getTime())
+    .filter((n) => Number.isFinite(n));
+
+  return stamps.length ? new Date(Math.max(...stamps)) : new Date();
+}
+
 export async function getPublishedBooks(): Promise<Book[]> {
   const supabase = createAnonSupabaseClient();
   const { data, error } = await supabase

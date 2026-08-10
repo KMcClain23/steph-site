@@ -72,6 +72,19 @@ curl -X POST https://stephaniebetschart.com/api/books/sync \
 
 Rows flagged `manual` in Supabase are skipped, so hand-corrections survive a sync.
 
+## Scripts
+
+```bash
+node scripts/generate-icons.mjs                                   # favicons + og.jpg from the brand assets
+node --env-file=.env.local scripts/backfill-demo-durations.mjs    # after adding demos
+node scripts/books-to-sql.mjs                                     # one-off books seed
+```
+
+**Run the duration backfill whenever you add a demo.** The player uses
+`preload="none"`, so the browser knows nothing about a track until it's played
+— the card reads its length from `demos.duration_seconds` instead. Skip the
+backfill and the new card shows elapsed time with no total.
+
 ## Things worth knowing before you edit
 
 - **`app/globals.css` — write `backdrop-filter` unprefixed only.** Lightning CSS
