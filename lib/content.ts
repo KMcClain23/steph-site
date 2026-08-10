@@ -4,10 +4,13 @@
  * plausibly want to edit herself (demos, books) is in Supabase instead.
  */
 
-/** The one hostname that is allowed to be indexed. */
+/** The registrable domain that is allowed to be indexed. */
 export const PRODUCTION_HOST = "stephaniebetschart.com";
 
 const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+/** www and the apex are the same site — only one of them is ever canonical. */
+const bareHost = (host: string) => host.replace(/^www\./i, "").toLowerCase();
 
 /**
  * Whether this deployment is the real site.
@@ -18,10 +21,15 @@ const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
  * build gets crawled while canonicalising to a domain that is still serving
  * somebody else's markup, which is how a preview quietly competes with the
  * site it's meant to replace.
+ *
+ * The www prefix is stripped before comparing. Vercel defaults to making www
+ * the primary domain and 308-ing the apex to it, so an exact match here would
+ * have left the real site noindex'd — the precise silent failure this gate
+ * exists to prevent.
  */
 export const IS_CANONICAL_HOST =
   !!configuredUrl && URL.canParse(configuredUrl)
-    ? new URL(configuredUrl).host === PRODUCTION_HOST
+    ? bareHost(new URL(configuredUrl).host) === PRODUCTION_HOST
     : false;
 
 export const SITE = {
