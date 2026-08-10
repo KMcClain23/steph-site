@@ -145,5 +145,9 @@ export async function updateDemo(_prev: ActionResult | null, formData: FormData)
 export async function signOut() {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
-  redirect("/admin/login");
+  // Back to the public site, not the login form. Signing out means you're
+  // done with the admin — landing on a login screen implies you're meant to
+  // sign straight back in, and on a one-administrator site you almost never
+  // are. Getting back in is a triple-click on the wordmark.
+  redirect("/");
 }

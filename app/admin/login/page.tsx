@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { adminEmails, isAdminEmail } from "@/lib/admin-emails";
+import { SITE } from "@/lib/content";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import LoginForm from "./login-form";
 
@@ -56,6 +58,18 @@ export default async function LoginPage({
       )}
 
       <LoginForm next={safeNext} />
+
+      {/*
+        Without this the login page is a dead end. The admin header — which
+        carries the "View site" link — only renders for a signed-in user, so
+        signing out leaves you on this screen with no navigation at all and no
+        way back except editing the URL.
+      */}
+      <p className="mt-8 text-center text-sm">
+        <Link href="/" className="text-white/50 transition-colors hover:text-gold">
+          ← Back to {SITE.name}
+        </Link>
+      </p>
     </div>
   );
 }
