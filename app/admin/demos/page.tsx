@@ -62,9 +62,19 @@ export default async function DemosAdminPage() {
               </span>
             </div>
 
+            {/*
+              preload="metadata" here, unlike the public player.
+
+              The public site uses preload="none" because most visitors never
+              press play, and nine files of metadata is bandwidth spent on
+              nothing. This page is the opposite: it's private, it's one
+              person, and the reason to open it is to listen. Without metadata
+              the native control renders "0:00 / 0:00" and an unusable
+              scrubber until playback starts.
+            */}
             <audio
               controls
-              preload="none"
+              preload="metadata"
               src={demo.audio_url}
               className="mt-3 h-9 w-full"
             />
