@@ -53,8 +53,27 @@ pretending to have sent.
 | Inquiries | `inquiries` table | Read-only record of the contact form |
 | Bio, booth specs, partners, socials | `lib/content.ts` | Code |
 
-There is **no `/admin` UI yet**. The schema is shaped like `reinita-site`'s so one
-can be added without a migration.
+## Admin
+
+`/admin` — inquiries inbox, book editing (descriptions, credits, order, publish),
+and demo show/hide/reorder. Email + password via Supabase Auth.
+
+**Access requires two things**: a Supabase Auth user, *and* that address listed in
+`ADMIN_EMAILS`. Being authenticated is not being authorised — Supabase allows
+sign-ups by default, so without the allowlist anyone who created an account would
+land in an admin whose every form is backed by a service-role client. An empty
+`ADMIN_EMAILS` denies everyone; it fails closed on purpose.
+
+To grant access: Supabase dashboard → Authentication → Users → Add user, then add
+that address to `ADMIN_EMAILS` in Vercel. Also turn **off** public sign-ups under
+Authentication → Providers → Email.
+
+`proxy.ts` gates the routes, but it is not the security boundary — every server
+action calls `requireAdmin()` itself, because a check performed in exactly one
+place is one you eventually forget.
+
+Demo **uploads** aren't built. Adding a demo still means committing the MP3 and
+running the duration script; the admin only shows/hides/reorders existing ones.
 
 15 demos are seeded; the 9 that were live on the old site are published and the
 other 6 are one `published` flip away.
