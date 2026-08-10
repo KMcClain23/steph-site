@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef } from "react";
 import { formatReleaseDate, hasRealCover, type Book } from "@/lib/books";
 
@@ -38,7 +39,18 @@ function BookCard({ book }: { book: Book }) {
 
         <div className="flex flex-1 flex-col gap-1">
           <h3 className="font-display text-[0.85rem] font-semibold uppercase leading-snug tracking-[0.5px] text-white/95">
-            {book.title}
+            {/*
+              The card title links to the title's own page. This is the only
+              internal path to those 22 pages, so without it they'd be
+              orphaned — reachable in the sitemap but linked from nowhere,
+              which is a weak signal to a crawler and a dead end for a reader.
+            */}
+            <Link
+              href={`/narrated/${book.slug}`}
+              className="transition-colors hover:text-gold"
+            >
+              {book.title}
+            </Link>
           </h3>
           <p className="text-[0.78rem] text-white/70">{book.author}</p>
           {released && (

@@ -144,6 +144,68 @@ export function homepageJsonLd(books: Book[], demos: Demo[]) {
   };
 }
 
+/**
+ * Per-title graph for /narrated/[slug]. Repeats the Person node rather than
+ * only referencing it, because this page is crawled on its own and a bare
+ * @id pointing at the homepage's graph resolves to nothing here.
+ */
+export function bookJsonLd(book: Book) {
+  const narrators = book.co_narrators?.length
+    ? book.co_narrators.map((n) => n.name)
+    : book.narrator_credit
+      ? [book.narrator_credit]
+      : [];
+
+  const url = `${SITE.url}/narrated/${book.slug}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": PERSON,
+        name: SITE.narrator,
+        alternateName: SITE.penName,
+        jobTitle: "Audiobook Narrator",
+        url: SITE.url,
+        image: `${SITE.url}/headshot.jpg`,
+      },
+      {
+        "@type": "Audiobook",
+        "@id": `${url}#audiobook`,
+        name: book.title,
+        bookFormat: "https://schema.org/AudiobookFormat",
+        inLanguage: "en",
+        url,
+        author: { "@type": "Person", name: book.author },
+        readBy: narrators.map(narratorNode),
+        image: book.cover_url.startsWith("http")
+          ? book.cover_url
+          : `${SITE.url}${book.cover_url}`,
+        ...(book.description?.trim() ? { description: book.description.trim() } : {}),
+        ...(isoDate(book.release_date)
+          ? { datePublished: isoDate(book.release_date) }
+          : {}),
+        ...(book.audible_url ? { sameAs: book.audible_url } : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumbs`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE.url },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Narrated Works",
+            item: `${SITE.url}/#narrated`,
+          },
+          { "@type": "ListItem", position: 3, name: book.title, item: url },
+        ],
+      },
+    ],
+  };
+}
+
 export function contactPageJsonLd() {
   return {
     "@context": "https://schema.org",

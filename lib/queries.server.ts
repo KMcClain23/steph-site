@@ -2,6 +2,9 @@ import type { Book } from "@/lib/books";
 import type { Demo } from "@/lib/demos";
 import { createAnonSupabaseClient } from "@/lib/supabase";
 
+const BOOK_FIELDS =
+  "id, slug, title, author, cover_url, audible_url, release_date, narrator_credit, co_narrators, rating_text, description";
+
 /**
  * Public reads, server-side only. RLS exposes just the published rows, so
  * the anon key is enough — nothing here needs the service role.
@@ -59,9 +62,7 @@ export async function getPublishedBooks(): Promise<Book[]> {
   const supabase = createAnonSupabaseClient();
   const { data, error } = await supabase
     .from("books")
-    .select(
-      "id, title, author, cover_url, audible_url, release_date, narrator_credit, co_narrators, rating_text"
-    )
+    .select(BOOK_FIELDS)
     .eq("published", true)
     .order("sort_order", { ascending: true });
 
@@ -70,4 +71,21 @@ export async function getPublishedBooks(): Promise<Book[]> {
     return [];
   }
   return (data ?? []) as Book[];
+}
+
+/** One book by its public slug. Returns null so the route can render notFound(). */
+export async function getBookBySlug(slug: string): Promise<Book | null> {
+  const supabase = createAnonSupabaseClient();
+  const { data, error } = await supabase
+    .from("books")
+    .select(BOOK_FIELDS)
+    .eq("slug", slug)
+    .eq("published", true)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Failed to load book "${slug}":`, error.message);
+    return null;
+  }
+  return (data as Book) ?? null;
 }

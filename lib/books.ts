@@ -9,6 +9,7 @@ export type CoNarrator = { name: string; audible_list?: string };
 
 export type Book = {
   id: string;
+  slug: string;
   title: string;
   author: string;
   cover_url: string;
@@ -17,7 +18,25 @@ export type Book = {
   narrator_credit: string | null;
   co_narrators: CoNarrator[];
   rating_text: string | null;
+  description: string | null;
 };
+
+/**
+ * Must match the SQL that backfilled the existing slugs
+ * (supabase/schema.sql). Apostrophes are removed rather than treated as a
+ * separator, so "It's Always Been Us" becomes its-always-been-us, not
+ * it-s-always-been-us.
+ *
+ * Slugs are stored, not derived at render time — these are public URLs, and a
+ * later typo fix in a title shouldn't silently break an indexed page.
+ */
+export function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 /**
  * The pipeline stores release dates as MM-DD-YY strings. Parse defensively:

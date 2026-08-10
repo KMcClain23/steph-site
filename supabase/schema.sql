@@ -31,8 +31,14 @@ create index if not exists demos_published_idx on public.demos (published, sort_
 -- row a human curated, which the sync route must not clobber.
 create table if not exists public.books (
   id               uuid primary key default gen_random_uuid(),
+  -- Public URL segment for /narrated/[slug]. Stored rather than derived at
+  -- render time: these get indexed and linked to, so a later title fix must
+  -- not silently move a live page. /api/books/sync reuses the existing slug
+  -- on update and only derives one for genuinely new titles.
+  slug             text not null,
   title            text not null,
   author           text not null,
+  description      text,                      -- optional synopsis, shown on the title page
   cover_url        text not null,
   audible_url      text,
   release_date     text,                       -- pipeline emits MM-DD-YY strings
@@ -49,6 +55,7 @@ create table if not exists public.books (
 );
 
 create unique index if not exists books_title_author_idx on public.books (title, author);
+create unique index if not exists books_slug_idx on public.books (slug);
 create index if not exists books_published_idx on public.books (published, sort_order);
 
 -- INQUIRIES (contact form)

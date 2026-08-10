@@ -70,6 +70,19 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: ["/og.jpg"],
   },
+  // Set GOOGLE_SITE_VERIFICATION / BING_SITE_VERIFICATION in Vercel to emit
+  // the meta tags. Only needed if you verify by HTML tag — DNS TXT
+  // verification at WordPress.com needs nothing here and covers every
+  // subdomain at once, which is the better option.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+      : {}),
+    ...(process.env.BING_SITE_VERIFICATION
+      ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } }
+      : {}),
+  },
+
   // Must agree with app/robots.ts. A preview deployment serving
   // "Disallow: /" while every page carries index,follow is a mixed signal —
   // robots.txt blocks the crawl, but a linked-to preview URL can still get
