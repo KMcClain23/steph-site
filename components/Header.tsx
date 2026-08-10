@@ -1,12 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { NAV, SITE, SOCIALS } from "@/lib/content";
 import { SocialIcon } from "./SocialIcons";
 
+/** How long a run of clicks stays "the same run". */
+const TRIPLE_CLICK_WINDOW_MS = 700;
+
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  /**
+   * Three quick clicks on the wordmark open the admin.
+   *
+   * A counter rather than the click event's own `detail` property: `detail`
+   * increments reliably for mouse clicks but not for taps on touch screens,
+   * and she'll sometimes be on a phone.
+   *
+   * The first two clicks are left alone to navigate home as normal — the
+   * alternative is delaying every visitor's click on the logo by most of a
+   * second while we wait to see whether a third one arrives, which is a real
+   * cost on the primary action to serve a shortcut one person uses.
+   *
+   * This isn't a security measure. It lands on /admin/login, which is behind
+   * Supabase auth and the ADMIN_EMAILS allowlist; anyone who finds it by
+   * accident just sees a login form.
+   */
+  const clicks = useRef(0);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    };
+  }, []);
+
+  function onWordmarkClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    clicks.current += 1;
+
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => {
+      clicks.current = 0;
+    }, TRIPLE_CLICK_WINDOW_MS);
+
+    if (clicks.current >= 3) {
+      event.preventDefault();
+      clicks.current = 0;
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+      router.push("/admin");
+    }
+  }
 
   // Close the drawer on Escape, and don't let the page scroll behind it.
   useEffect(() => {
@@ -54,7 +100,11 @@ export default function Header() {
 
         <Link
           href="/"
-          className="flex-1 text-center font-display text-lg font-semibold tracking-wide text-white md:flex-none md:text-xl"
+          onClick={onWordmarkClick}
+          // select-none so the third click doesn't leave the wordmark sitting
+          // there highlighted — triple-click is also the browser's
+          // select-the-line gesture.
+          className="flex-1 select-none text-center font-display text-lg font-semibold tracking-wide text-white md:flex-none md:text-xl"
         >
           {SITE.name}
         </Link>
