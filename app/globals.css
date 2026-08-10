@@ -1,0 +1,367 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Depth & Dawn Audio — design tokens
+
+   Values are lifted from the live Fourthwall site so the rebuild reads as
+   the same site: gold #c48b36 on a dark moonlit photograph, with smoked
+   glass panels floating over it.
+   ───────────────────────────────────────────────────────────── */
+
+@theme {
+  --color-gold: #c48b36;
+  --color-gold-bright: #d9a24b;
+  --color-gold-soft: #d9b06a;
+
+  /* The violet in the background art. Only ever used as glow, never as fill. */
+  --color-violet-glow: #be78ff;
+  --color-violet-deep: #8c3cdc;
+
+  /* Both are loaded and self-hosted by next/font in app/layout.tsx. */
+  --font-display: var(--font-epilogue), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-panel: 18px;
+  --radius-chip: 14px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  /* Solid black underneath the photograph. If the image is still loading (or
+     fails), text stays legible instead of landing on white. */
+  background-color: #0a0510;
+  color: #fff;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   The background
+
+   Her one hard requirement: the custom art stays, full page. The old site
+   used `background-attachment: fixed` on <body>, which iOS Safari does not
+   honour — it rescales the image on every scroll and can drop it entirely
+   under memory pressure. A fixed-position layer behind the content gets the
+   same look and actually holds on a phone.
+   ───────────────────────────────────────────────────────────── */
+
+.site-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url("/bg.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Content sits over the busiest part of the photograph — the lit water and
+   the moon. A vertical scrim buys back the contrast without dulling the art
+   at the top and bottom, where the frame is already dark. */
+.site-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 2, 12, 0.15) 0%,
+    rgba(6, 2, 12, 0.42) 45%,
+    rgba(6, 2, 12, 0.62) 100%
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Shared surfaces
+   ───────────────────────────────────────────────────────────── */
+
+.panel {
+  background: rgba(0, 0, 0, 0.35);
+  /* Unprefixed only. Lightning CSS adds -webkit- from the browser targets;
+     writing both by hand makes it collapse the pair down to the prefixed
+     form alone, which leaves Chrome and Firefox with no blur at all. */
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--color-gold);
+  text-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.8),
+    0 0 25px rgba(0, 0, 0, 0.55);
+}
+
+.body-copy {
+  color: rgba(255, 255, 255, 0.96);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+  line-height: 1.9;
+}
+
+.form-field {
+  width: 100%;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(186, 120, 220, 0.2);
+  border-radius: var(--radius-chip);
+  color: #fff;
+  font-size: 1rem;
+  /* Unprefixed only. Lightning CSS adds -webkit- from the browser targets;
+     writing both by hand makes it collapse the pair down to the prefixed
+     form alone, which leaves Chrome and Firefox with no blur at all. */
+  backdrop-filter: blur(4px);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.form-field::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.form-field:focus {
+  outline: none;
+  border-color: rgba(220, 150, 255, 0.45);
+  box-shadow: 0 0 14px rgba(170, 90, 220, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* The violet glow alone is too quiet to serve as a keyboard focus indicator,
+   so keyboard focus keeps the gold ring on top of it. */
+.form-field:focus-visible {
+  outline: 2px solid var(--color-gold-bright);
+  outline-offset: 2px;
+}
+
+/* The "Contact Me / Send an Inquiry" chip under the bio. */
+.email-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(186, 120, 220, 0.22);
+  /* Unprefixed only. Lightning CSS adds -webkit- from the browser targets;
+     writing both by hand makes it collapse the pair down to the prefixed
+     form alone, which leaves Chrome and Firefox with no blur at all. */
+  backdrop-filter: blur(4px);
+  box-shadow:
+    0 0 12px rgba(140, 60, 220, 0.1),
+    inset 0 0 10px rgba(255, 255, 255, 0.03);
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.email-chip:hover {
+  transform: translateY(-2px);
+  border-color: rgba(220, 150, 255, 0.45);
+  box-shadow:
+    0 0 18px rgba(170, 90, 220, 0.18),
+    0 0 35px rgba(130, 50, 200, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Partner marquee
+   ───────────────────────────────────────────────────────────── */
+
+.marquee-track {
+  will-change: transform;
+  animation: partner-scroll 45s linear infinite;
+}
+
+.marquee-viewport:hover .marquee-track,
+.marquee-viewport:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes partner-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Several of these logos are dark artwork on transparency (Blue Nose in
+   particular). The glow is what keeps them readable on a near-black panel —
+   it's the same triple drop-shadow the original used. */
+.partner-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(186, 120, 220, 0.28);
+  box-shadow:
+    0 0 10px rgba(170, 90, 220, 0.18),
+    0 0 22px rgba(130, 60, 200, 0.14),
+    0 0 45px rgba(100, 40, 170, 0.08),
+    inset 0 0 12px rgba(255, 255, 255, 0.04);
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.partner-chip:hover {
+  transform: scale(1.08);
+  border-color: rgba(220, 150, 255, 0.65);
+  box-shadow:
+    0 0 18px rgba(200, 120, 255, 0.35),
+    0 0 35px rgba(170, 90, 220, 0.28),
+    0 0 70px rgba(130, 50, 200, 0.18);
+}
+
+.partner-logo {
+  filter:
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.16))
+    drop-shadow(0 0 16px rgba(190, 120, 255, 0.22))
+    drop-shadow(0 0 30px rgba(140, 60, 220, 0.16));
+}
+
+/* Macmillan Audio's artwork is black type on a solid white ground, so it comes
+   with its own opaque rectangle no matter what sits behind it. Rather than
+   fight that, the chip becomes a white plate and the rectangle disappears
+   into it. The glow moves to the chip, since a drop-shadow on an opaque
+   rectangle only outlines the rectangle. */
+.partner-chip--light {
+  background: #fff;
+  border-color: rgba(186, 120, 220, 0.45);
+}
+
+.partner-logo--plated {
+  filter: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Book shelf
+   ───────────────────────────────────────────────────────────── */
+
+.book-shelf {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 139, 54, 0.55) rgba(255, 255, 255, 0.08);
+}
+
+.book-shelf::-webkit-scrollbar {
+  height: 8px;
+}
+
+.book-shelf::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.book-shelf::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(196, 139, 54, 0.55);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Demo cards
+   ───────────────────────────────────────────────────────────── */
+
+.audio-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 0 22px rgba(196, 139, 54, 0.12);
+}
+
+/* The bars idle at rest and only animate on the card that's playing, which
+   is what tells you at a glance which of the nine is making noise. */
+.waveform {
+  opacity: 0.35;
+  transition: opacity 0.25s ease;
+}
+
+.waveform span {
+  animation: wave 1s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.audio-card.is-playing .waveform {
+  opacity: 1;
+}
+
+.audio-card.is-playing .waveform span {
+  animation-play-state: running;
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1.25);
+  }
+}
+
+.demo-scrubber {
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.demo-scrubber::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-gold) var(--progress, 0%),
+    rgba(255, 255, 255, 0.16) var(--progress, 0%)
+  );
+}
+
+.demo-scrubber::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-gold) var(--progress, 0%),
+    rgba(255, 255, 255, 0.16) var(--progress, 0%)
+  );
+}
+
+.demo-scrubber::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -3px;
+  border-radius: 999px;
+  background: var(--color-gold-bright);
+  box-shadow: 0 0 8px rgba(196, 139, 54, 0.6);
+}
+
+.demo-scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-gold-bright);
+  box-shadow: 0 0 8px rgba(196, 139, 54, 0.6);
+}
+
+/* Every interactive element gets the same visible ring. The old site had no
+   focus styling at all, which made the demo grid unusable by keyboard. */
+:where(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-gold-bright);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Motion
+
+   The marquee and the book carousel both scroll on their own. Respect the
+   OS setting rather than animating regardless.
+   ───────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
