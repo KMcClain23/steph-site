@@ -57,6 +57,27 @@ export function formatReleaseDate(raw: string | null): string | null {
 }
 
 /**
+ * Splits the pipeline's rating string into its two numbers.
+ *
+ * It arrives as one run-on field — "4.0 41 ratings" — where the score and the
+ * count collide into what looks like a single figure. Separating them lets the
+ * page space them out.
+ *
+ * Returns null for anything that doesn't match, including "Not rated yet",
+ * which is what unreleased titles carry. Callers can then simply omit the row.
+ */
+export function parseRating(
+  raw: string | null
+): { value: string; count: number } | null {
+  if (!raw) return null;
+  const m = /^\s*(\d+(?:\.\d+)?)\s+([\d,]+)\s+ratings?\s*$/i.exec(raw);
+  if (!m) return null;
+  const count = Number(m[2].replace(/,/g, ""));
+  if (!Number.isFinite(count)) return null;
+  return { value: m[1], count };
+}
+
+/**
  * Audible serves a generic "cover art unavailable" SVG for titles that haven't
  * shipped art yet. next/image can't optimise remote SVG without opening the
  * door to arbitrary remote SVG, so those get a styled placeholder instead.

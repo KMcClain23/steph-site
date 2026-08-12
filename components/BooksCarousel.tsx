@@ -15,7 +15,13 @@ function BookCard({ book }: { book: Book }) {
 
   return (
     <li className="w-[220px] shrink-0 snap-start">
-      <article className="flex h-full flex-col gap-3 rounded-[var(--radius-chip)] border border-white/10 bg-white/[0.06] p-3 shadow-[0_0_18px_rgba(0,0,0,0.25)] transition hover:-translate-y-1 hover:border-gold/40 hover:bg-white/[0.09]">
+      {/*
+        `relative` anchors the stretched link below. The whole card is
+        clickable, but there's still exactly one anchor for the title and one
+        for Audible — nesting a link inside a link isn't valid HTML and
+        browsers recover from it unpredictably.
+      */}
+      <article className="relative flex h-full flex-col gap-3 rounded-[var(--radius-chip)] border border-white/10 bg-white/[0.06] p-3 shadow-[0_0_18px_rgba(0,0,0,0.25)] transition hover:-translate-y-1 hover:border-gold/40 hover:bg-white/[0.09] focus-within:border-gold/40">
         <div className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-black/40">
           {hasRealCover(book.cover_url) ? (
             <Image
@@ -45,9 +51,17 @@ function BookCard({ book }: { book: Book }) {
               orphaned — reachable in the sitemap but linked from nowhere,
               which is a weak signal to a crawler and a dead end for a reader.
             */}
+            {/*
+              after:absolute after:inset-0 stretches this link's hit area over
+              the entire card, so the cover and the credits are clickable too
+              without a second anchor wrapping them. The title stays the link's
+              accessible name, which is what a screen reader should announce —
+              a wrapper around the whole card would read out the cover alt,
+              author, date and narrators as one run-on link name.
+            */}
             <Link
               href={`/narrated/${book.slug}`}
-              className="transition-colors hover:text-gold"
+              className="transition-colors after:absolute after:inset-0 after:rounded-[var(--radius-chip)] after:content-[''] hover:text-gold"
             >
               {book.title}
             </Link>
@@ -66,7 +80,10 @@ function BookCard({ book }: { book: Book }) {
             href={book.audible_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-[10px] border border-gold/45 bg-gold/15 px-3 py-2 text-center text-[0.72rem] font-bold uppercase tracking-[1px] text-gold transition hover:bg-gold/25 hover:text-gold-bright"
+            // relative + z-10 lifts this above the title's stretched overlay.
+            // Without it the overlay swallows the click and "Listen on
+            // Audible" quietly navigates to the book page instead.
+            className="relative z-10 rounded-[10px] border border-gold/45 bg-gold/15 px-3 py-2 text-center text-[0.72rem] font-bold uppercase tracking-[1px] text-gold transition hover:bg-gold/25 hover:text-gold-bright"
           >
             Listen on Audible
           </a>

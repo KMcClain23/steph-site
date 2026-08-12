@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatReleaseDate, hasRealCover, type Book } from "@/lib/books";
+import { formatReleaseDate, hasRealCover, parseRating, type Book } from "@/lib/books";
 import { SITE } from "@/lib/content";
 import { getBookBySlug, getPublishedBooks } from "@/lib/queries.server";
 import { bookJsonLd } from "@/lib/structured-data";
@@ -79,6 +79,9 @@ export default async function BookPage({ params }: Props) {
   if (!book) notFound();
 
   const released = formatReleaseDate(book.release_date);
+  // null for unrated and unreleased titles, which drops the row entirely
+  // rather than printing "Not rated yet" as though it were a score.
+  const rating = parseRating(book.rating_text);
   const narrators = book.co_narrators?.length
     ? book.co_narrators
     : book.narrator_credit
@@ -152,10 +155,25 @@ export default async function BookPage({ params }: Props) {
                   <dd className="inline">{released}</dd>
                 </div>
               )}
-              {book.rating_text && book.rating_text !== "Not rated yet" && (
+              {rating && (
                 <div>
                   <dt className="inline font-bold text-white/70">Audible rating: </dt>
-                  <dd className="inline">{book.rating_text}</dd>
+                  <dd className="inline-flex flex-wrap items-baseline gap-x-2">
+                    <span>
+                      <span aria-hidden="true" className="text-gold">
+                        ★
+                      </span>{" "}
+                      <span className="font-semibold">{rating.value}</span>
+                      <span className="text-white/50"> out of 5</span>
+                    </span>
+                    <span aria-hidden="true" className="text-white/30">
+                      ·
+                    </span>
+                    <span className="text-white/70">
+                      {rating.count.toLocaleString()} rating
+                      {rating.count === 1 ? "" : "s"}
+                    </span>
+                  </dd>
                 </div>
               )}
             </dl>
