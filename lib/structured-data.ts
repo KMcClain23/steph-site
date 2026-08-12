@@ -96,6 +96,16 @@ export function homepageJsonLd(books: Book[], demos: Demo[]) {
         url: SITE.url,
         name: `${SITE.narrator} | ${SITE.name}`,
         isPartOf: { "@id": WEBSITE },
+        /**
+         * mainEntity, not about.
+         *
+         * Both are valid schema.org for "this page is about that thing", but
+         * Google's ProfilePage rich result specifically requires mainEntity —
+         * with `about` alone Search Console reports the page as missing a
+         * required field and drops the result entirely. `about` is kept
+         * alongside it because it remains correct and costs nothing.
+         */
+        mainEntity: { "@id": PERSON },
         about: { "@id": PERSON },
         primaryImageOfPage: { "@type": "ImageObject", url: `${SITE.url}/og.jpg` },
       },
