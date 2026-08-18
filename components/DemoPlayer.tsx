@@ -70,18 +70,28 @@ export default function DemoPlayer({
         playing ? "is-playing" : ""
       }`}
     >
+      {/*
+        Three lines carrying three different kinds of fact, so each gets its
+        own treatment rather than the title and its qualifier sharing one.
+
+          title            what the piece is        white, heaviest
+          title_secondary  the accent or register   gold, lighter, wider tracking
+          subtitle         POV or category          muted, sentence case
+
+        The case change on the third line matters as much as the colour — two
+        lines of caps followed by a third would still read as one block.
+      */}
       <div className="px-1 pt-1">
-        <h3 className="font-display text-[0.95rem] font-semibold uppercase leading-snug tracking-[0.5px] text-white/95">
+        <h3 className="font-display text-[0.95rem] font-semibold uppercase leading-snug tracking-[0.5px] text-white">
           {demo.title}
           {demo.title_secondary && (
-            <>
-              <br />
+            <span className="mt-1 block text-[0.78rem] font-medium tracking-[1.4px] text-gold/90">
               {demo.title_secondary}
-            </>
+            </span>
           )}
         </h3>
         {demo.subtitle && (
-          <p className="mt-1 whitespace-pre-line text-[0.85rem] text-white/70">
+          <p className="mt-2 whitespace-pre-line text-[0.78rem] leading-snug text-white/50">
             {demo.subtitle}
           </p>
         )}
