@@ -52,11 +52,22 @@ const cleanUrl = (u?: string | null) => (u ? u.split("?")[0] : null);
  */
 const bookKey = (title: string, author: string) => `${title}\0${author}`;
 
+/**
+ * Two callers, two secrets.
+ *
+ * BOOKS_SYNC_TOKEN is for the Audible pipeline POSTing at the end of a scrape.
+ * CRON_SECRET is what Vercel Cron sends, and Vercel issues a GET — so the same
+ * work has to be reachable both ways.
+ */
 function authorized(request: Request) {
-  const expected = process.env.BOOKS_SYNC_TOKEN;
-  if (!expected) return false;
   const header = request.headers.get("authorization") ?? "";
-  return header === `Bearer ${expected}`;
+  const secrets = [
+    process.env.BOOKS_SYNC_TOKEN,
+    process.env.CRON_SECRET,
+  ].filter(Boolean) as string[];
+
+  // No secret configured means no access, rather than open access.
+  return secrets.some((secret) => header === `Bearer ${secret}`);
 }
 
 export async function POST(request: Request) {
@@ -170,4 +181,12 @@ export async function POST(request: Request) {
     skipped_manual: feed.books.length - rows.length,
     revalidated: ["/", "/narrated/*"],
   });
+}
+
+/**
+ * Vercel Cron calls its target with GET, so the scheduled run enters here.
+ * Same work, same authorisation — only the method differs.
+ */
+export async function GET(request: Request) {
+  return POST(request);
 }
