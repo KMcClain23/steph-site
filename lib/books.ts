@@ -14,6 +14,7 @@ export type Book = {
   author: string;
   cover_url: string;
   audible_url: string | null;
+  siren_url: string | null;
   release_date: string | null;
   narrator_credit: string | null;
   co_narrators: CoNarrator[];

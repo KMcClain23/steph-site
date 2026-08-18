@@ -118,3 +118,20 @@ drop trigger if exists books_set_updated_at on public.books;
 create trigger books_set_updated_at
   before update on public.books
   for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────
+-- Added after launch
+-- ─────────────────────────────────────────────────────────────
+
+-- Some titles are released through Siren Audio as well as Audible.
+alter table public.books add column if not exists siren_url text;
+
+-- Storage buckets for admin uploads. Both public-read: covers and demo audio
+-- are served straight to visitors. Writes only happen server-side through the
+-- service-role key, behind requireAdmin().
+--
+--   covers  8MB   image/jpeg, image/png, image/webp, image/avif
+--   demos  25MB   audio/mpeg
+--
+-- Created with supabase.storage.createBucket() rather than SQL; see
+-- scripts/ or recreate them in the dashboard with those limits.

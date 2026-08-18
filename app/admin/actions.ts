@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { slugify } from "@/lib/books";
 import { requireAdmin } from "@/lib/admin-auth";
+import { readAudioDuration, uploadCover, uploadDemoAudio } from "@/lib/storage";
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase";
 
 /**
@@ -82,6 +83,7 @@ const BookUpdate = z.object({
   narrator_credit: z.string().max(200).optional().default(""),
   cover_url: z.string().max(1000).optional().default(""),
   audible_url: z.string().max(1000).optional().default(""),
+  siren_url: z.string().max(1000).optional().default(""),
   sort_order: z.coerce.number().int().min(0).max(100000),
   published: z.coerce.boolean(),
   manual: z.coerce.boolean(),
@@ -96,6 +98,7 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
     narrator_credit: formData.get("narrator_credit") ?? "",
     cover_url: formData.get("cover_url") ?? "",
     audible_url: formData.get("audible_url") ?? "",
+    siren_url: formData.get("siren_url") ?? "",
     release_date: formData.get("release_date") ?? "",
     sort_order: formData.get("sort_order") ?? 0,
     published: formData.get("published") === "on",
@@ -106,13 +109,26 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
   const d = parsed.data;
   const supabase = createServiceRoleClient();
 
+  // An uploaded file wins over the URL field, so choosing an image and
+  // forgetting to clear the old URL does the obvious thing rather than
+  // silently ignoring the upload.
+  let coverUrl = d.cover_url.trim();
+  const coverFile = fileOrNull(formData.get("cover_file"));
+  if (coverFile) {
+    const up = await uploadCover(coverFile, d.id);
+    if (!up.ok) return { ok: false, error: up.error };
+    coverUrl = up.url;
+  }
+  if (!coverUrl) return { ok: false, error: "A cover image is required." };
+
   const { data: row, error } = await supabase
     .from("books")
     .update({
       description: d.description.trim() || null,
       narrator_credit: d.narrator_credit.trim() || null,
-      cover_url: d.cover_url.trim(),
+      cover_url: coverUrl,
       audible_url: d.audible_url.trim() || null,
+      siren_url: d.siren_url.trim() || null,
       release_date: d.release_date ? toPipelineDate(d.release_date) : null,
       sort_order: d.sort_order,
       published: d.published,
@@ -131,26 +147,125 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
   return { ok: true };
 }
 
-const DemoUpdate = z.object({
-  id: z.string().uuid(),
+const DemoFields = z.object({
+  title: z.string().min(1).max(200),
+  title_secondary: z.string().max(200).optional().default(""),
+  subtitle: z.string().max(200).optional().default(""),
   sort_order: z.coerce.number().int().min(0).max(100000),
   published: z.coerce.boolean(),
 });
 
-export async function updateDemo(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+const DemoUpdate = DemoFields.extend({ id: z.string().uuid() });
+
+/** An <input type="file"> that was left empty still arrives as a 0-byte File. */
+function fileOrNull(value: FormDataEntryValue | null): File | null {
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
+export async function updateDemo(
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
   await requireAdmin();
 
   const parsed = DemoUpdate.safeParse({
     id: formData.get("id"),
+    title: formData.get("title"),
+    title_secondary: formData.get("title_secondary") ?? "",
+    subtitle: formData.get("subtitle") ?? "",
     sort_order: formData.get("sort_order") ?? 0,
     published: formData.get("published") === "on",
   });
-  if (!parsed.success) return { ok: false, error: "Invalid values." };
+  if (!parsed.success) return { ok: false, error: "A demo needs a title." };
+  const d = parsed.data;
+
+  const patch: Record<string, unknown> = {
+    title: d.title.trim(),
+    title_secondary: d.title_secondary.trim() || null,
+    subtitle: d.subtitle.trim() || null,
+    sort_order: d.sort_order,
+    published: d.published,
+  };
+
+  // Replacing the audio is optional — leave the field empty and the existing
+  // recording stays untouched.
+  const audio = fileOrNull(formData.get("audio"));
+  if (audio) {
+    const up = await uploadDemoAudio(audio, d.title);
+    if (!up.ok) return { ok: false, error: up.error };
+    patch.audio_url = up.url;
+    patch.duration_seconds = await readAudioDuration(audio);
+  }
 
   const { error } = await createServiceRoleClient()
     .from("demos")
-    .update({ sort_order: parsed.data.sort_order, published: parsed.data.published })
-    .eq("id", parsed.data.id);
+    .update(patch)
+    .eq("id", d.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/demos");
+  return { ok: true };
+}
+
+export async function createDemo(
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = DemoFields.safeParse({
+    title: formData.get("title"),
+    title_secondary: formData.get("title_secondary") ?? "",
+    subtitle: formData.get("subtitle") ?? "",
+    sort_order: formData.get("sort_order") || 0,
+    published: formData.get("published") === "on",
+  });
+  if (!parsed.success) return { ok: false, error: "A demo needs a title." };
+  const d = parsed.data;
+
+  const audio = fileOrNull(formData.get("audio"));
+  if (!audio) return { ok: false, error: "Choose an MP3 to upload." };
+
+  const up = await uploadDemoAudio(audio, d.title);
+  if (!up.ok) return { ok: false, error: up.error };
+
+  const { error } = await createServiceRoleClient().from("demos").insert({
+    title: d.title.trim(),
+    title_secondary: d.title_secondary.trim() || null,
+    subtitle: d.subtitle.trim() || null,
+    audio_url: up.url,
+    // Parsed here so the card can show a real length without the browser
+    // downloading the file to find out.
+    duration_seconds: await readAudioDuration(audio),
+    sort_order: d.sort_order,
+    published: d.published,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/demos");
+  return { ok: true };
+}
+
+export async function deleteDemo(
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Invalid id." };
+
+  // The audio file is deliberately left in the bucket. Storage is cheap and a
+  // deleted row is far more likely to be a mistake than a stored MP3 is to be
+  // a problem.
+  const { error } = await createServiceRoleClient()
+    .from("demos")
+    .delete()
+    .eq("id", id.data);
 
   if (error) return { ok: false, error: error.message };
 
@@ -172,8 +287,12 @@ export async function signOut() {
 const BookCreate = z.object({
   title: z.string().min(1).max(300),
   author: z.string().min(1).max(200),
-  cover_url: z.string().min(1).max(1000),
+  // Not required at the schema level any more: a cover can arrive either as a
+  // URL or as an upload, and "one of these two" isn't expressible here.
+  // Checked below once the file is in hand.
+  cover_url: z.string().max(1000).optional().default(""),
   audible_url: z.string().max(1000).optional().default(""),
+  siren_url: z.string().max(1000).optional().default(""),
   release_date: z.string().max(20).optional().default(""),
   narrator_credit: z.string().max(200).optional().default(""),
   description: z.string().max(4000).optional().default(""),
@@ -203,6 +322,7 @@ export async function createBook(
     author: formData.get("author"),
     cover_url: formData.get("cover_url"),
     audible_url: formData.get("audible_url") ?? "",
+    siren_url: formData.get("siren_url") ?? "",
     release_date: formData.get("release_date") ?? "",
     narrator_credit: formData.get("narrator_credit") ?? "",
     description: formData.get("description") ?? "",
@@ -210,10 +330,23 @@ export async function createBook(
     published: formData.get("published") === "on",
   });
   if (!parsed.success) {
-    return { ok: false, error: "Title, author and cover URL are all required." };
+    return { ok: false, error: "Title and author are both required." };
   }
   const d = parsed.data;
   const supabase = createServiceRoleClient();
+
+  // Cover: an upload wins over a pasted URL. cover_url is NOT NULL in the
+  // database, so one of the two has to be present.
+  let coverUrl = d.cover_url.trim();
+  const coverFile = fileOrNull(formData.get("cover_file"));
+  if (coverFile) {
+    const up = await uploadCover(coverFile, d.title);
+    if (!up.ok) return { ok: false, error: up.error };
+    coverUrl = up.url;
+  }
+  if (!coverUrl) {
+    return { ok: false, error: "Add a cover — either upload an image or paste a URL." };
+  }
 
   // slug is unique and NOT NULL, so resolve collisions before inserting
   // rather than letting Postgres reject the row with a constraint error.
@@ -230,8 +363,9 @@ export async function createBook(
     slug,
     title: d.title.trim(),
     author: d.author.trim(),
-    cover_url: d.cover_url.trim(),
+    cover_url: coverUrl,
     audible_url: d.audible_url.trim() || null,
+    siren_url: d.siren_url.trim() || null,
     release_date: d.release_date ? toPipelineDate(d.release_date) : null,
     narrator_credit: d.narrator_credit.trim() || null,
     description: d.description.trim() || null,

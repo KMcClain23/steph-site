@@ -193,6 +193,16 @@ export default async function BookPage({ params }: Props) {
                   Listen on Audible
                 </a>
               )}
+              {book.siren_url && (
+                <a
+                  href={book.siren_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="email-chip rounded-[var(--radius-chip)] px-6 py-3.5 font-medium text-white/95 transition"
+                >
+                  Listen on Siren Audio
+                </a>
+              )}
               <Link
                 href="/contact"
                 className="email-chip rounded-[var(--radius-chip)] px-6 py-3.5 font-medium text-white/95 transition"

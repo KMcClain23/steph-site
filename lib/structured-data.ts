@@ -196,7 +196,12 @@ export function bookJsonLd(book: Book) {
         ...(isoDate(book.release_date)
           ? { datePublished: isoDate(book.release_date) }
           : {}),
-        ...(book.audible_url ? { sameAs: book.audible_url } : {}),
+        // Every place the title can be heard. sameAs takes an array, so a
+        // title on both Audible and Siren lists both.
+        ...(() => {
+          const elsewhere = [book.audible_url, book.siren_url].filter(Boolean);
+          return elsewhere.length ? { sameAs: elsewhere } : {};
+        })(),
       },
       {
         "@type": "BreadcrumbList",

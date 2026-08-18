@@ -8,7 +8,18 @@ const nextConfig: NextConfig = {
       // mean re-downloading 21+ covers every time the sync route runs.
       { protocol: "https", hostname: "m.media-amazon.com" },
       { protocol: "https", hostname: "images-na.ssl-images-amazon.com" },
+      // Covers uploaded through the admin land in Supabase Storage.
+      { protocol: "https", hostname: "flddisogifvawenbyvln.supabase.co" },
     ],
+  },
+
+  experimental: {
+    serverActions: {
+      // Server actions cap request bodies at 1MB by default, which silently
+      // rejects any cover upload and every demo MP3 — the longest reel is
+      // 3.6MB. Raised to cover the 25MB bucket limit on demos with headroom.
+      bodySizeLimit: "30mb",
+    },
   },
 
   // Fourthwall served the contact page at /pages/contact-me, and that URL is

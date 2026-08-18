@@ -3,7 +3,7 @@ import type { Demo } from "@/lib/demos";
 import { createAnonSupabaseClient } from "@/lib/supabase";
 
 const BOOK_FIELDS =
-  "id, slug, title, author, cover_url, audible_url, release_date, narrator_credit, co_narrators, rating_text, description";
+  "id, slug, title, author, cover_url, audible_url, siren_url, release_date, narrator_credit, co_narrators, rating_text, description";
 
 /**
  * Public reads, server-side only. RLS exposes just the published rows, so

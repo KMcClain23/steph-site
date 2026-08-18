@@ -14,6 +14,7 @@ type Row = {
   author: string;
   cover_url: string;
   audible_url: string | null;
+  siren_url: string | null;
   narrator_credit: string | null;
   description: string | null;
   release_date: string | null;
@@ -60,7 +61,7 @@ export default async function BooksAdminPage() {
   const { data, error } = await createServiceRoleClient()
     .from("books")
     .select(
-      "id, slug, title, author, cover_url, audible_url, narrator_credit, description, release_date, sort_order, published, manual"
+      "id, slug, title, author, cover_url, audible_url, siren_url, narrator_credit, description, release_date, sort_order, published, manual"
     )
     .order("sort_order", { ascending: true });
 
@@ -127,21 +128,47 @@ export default async function BooksAdminPage() {
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls} htmlFor="new-cover">
-                  Cover image URL <span className="text-gold">*</span>
+                  Cover image URL
                 </label>
                 <input
                   id="new-cover"
                   name="cover_url"
-                  required
                   placeholder="https://m.media-amazon.com/images/I/....jpg"
                   className={field}
                 />
               </div>
               <div className="sm:col-span-2">
+                <label className={labelCls} htmlFor="new-coverfile">
+                  …or upload a cover from your computer
+                </label>
+                <input
+                  id="new-coverfile"
+                  name="cover_file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  className="w-full text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-gold/20 file:px-3 file:py-2 file:text-sm file:font-bold file:text-gold hover:file:bg-gold/30"
+                />
+                <p className="mt-1 text-xs text-white/40">
+                  An upload takes precedence over the URL above. One of the two
+                  is required.
+                </p>
+              </div>
+              <div>
                 <label className={labelCls} htmlFor="new-audible">
                   Audible URL
                 </label>
                 <input id="new-audible" name="audible_url" className={field} />
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="new-siren">
+                  Siren Audio URL
+                </label>
+                <input
+                  id="new-siren"
+                  name="siren_url"
+                  placeholder="https://siren.audio/audiobooks/…"
+                  className={field}
+                />
               </div>
               <div>
                 <label className={labelCls} htmlFor="new-credit">
@@ -333,7 +360,7 @@ export default async function BooksAdminPage() {
                         className={field}
                       />
                     </div>
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className={labelCls} htmlFor={`audible-${book.id}`}>
                         Audible URL
                       </label>
@@ -343,6 +370,34 @@ export default async function BooksAdminPage() {
                         defaultValue={book.audible_url ?? ""}
                         className={field}
                       />
+                    </div>
+                    <div>
+                      <label className={labelCls} htmlFor={`siren-${book.id}`}>
+                        Siren Audio URL
+                      </label>
+                      <input
+                        id={`siren-${book.id}`}
+                        name="siren_url"
+                        defaultValue={book.siren_url ?? ""}
+                        placeholder="https://siren.audio/audiobooks/…"
+                        className={field}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={labelCls} htmlFor={`coverfile-${book.id}`}>
+                        Replace cover with an upload
+                      </label>
+                      <input
+                        id={`coverfile-${book.id}`}
+                        name="cover_file"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        className="w-full text-sm text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-gold/20 file:px-3 file:py-2 file:text-sm file:font-bold file:text-gold hover:file:bg-gold/30"
+                      />
+                      <p className="mt-1 text-xs text-white/40">
+                        Optional. Choosing a file replaces whatever the cover URL
+                        points at. Square artwork, JPEG/PNG/WebP, under 8MB.
+                      </p>
                     </div>
                   </div>
 
