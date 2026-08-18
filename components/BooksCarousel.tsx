@@ -5,8 +5,22 @@ import Link from "next/link";
 import { useRef } from "react";
 import { formatReleaseDate, hasRealCover, type Book } from "@/lib/books";
 
+/**
+ * Where a card's single listen button should point.
+ *
+ * Audible first where a title is on both — it's where most listeners already
+ * are. A Siren-only title previously rendered no button at all, because the
+ * card only ever checked for an Audible link.
+ */
+function listenLink(book: Book): { href: string; label: string } | null {
+  if (book.audible_url) return { href: book.audible_url, label: "Listen on Audible" };
+  if (book.siren_url) return { href: book.siren_url, label: "Listen on Siren Audio" };
+  return null;
+}
+
 function BookCard({ book }: { book: Book }) {
   const released = formatReleaseDate(book.release_date);
+  const listen = listenLink(book);
   const narrators = book.co_narrators?.length
     ? book.co_narrators
     : book.narrator_credit
@@ -75,17 +89,24 @@ function BookCard({ book }: { book: Book }) {
           </p>
         </div>
 
-        {book.audible_url && (
+        {/*
+          One button, not one per storefront. The card is 220px wide, and a
+          second button would push the covers out of alignment on every row
+          that has one. Audible is preferred where a title is on both; a
+          Siren-only title still gets a way to listen instead of a card that
+          dead-ends. The full set of links is on the title's own page.
+        */}
+        {listen && (
           <a
-            href={book.audible_url}
+            href={listen.href}
             target="_blank"
             rel="noopener noreferrer"
             // relative + z-10 lifts this above the title's stretched overlay.
-            // Without it the overlay swallows the click and "Listen on
-            // Audible" quietly navigates to the book page instead.
+            // Without it the overlay swallows the click and the listen link
+            // quietly navigates to the book page instead.
             className="relative z-10 rounded-[10px] border border-gold/45 bg-gold/15 px-3 py-2 text-center text-[0.72rem] font-bold uppercase tracking-[1px] text-gold transition hover:bg-gold/25 hover:text-gold-bright"
           >
-            Listen on Audible
+            {listen.label}
           </a>
         )}
       </article>
