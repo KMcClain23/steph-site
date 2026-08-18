@@ -135,7 +135,22 @@ export default async function DemosAdminPage() {
 
       {/* Two columns on wide screens — the cards are short, so a single
           column left most of the page empty and made reordering a scroll. */}
-      <SortableList ids={demos.map((d) => d.id)} action={reorderDemos} grid>
+      <SortableList
+        ids={demos.map((d) => d.id)}
+        action={reorderDemos}
+        grid
+        noun="demos"
+        search={Object.fromEntries(
+          demos.map((d) => [
+            d.id,
+            [d.title, d.title_secondary, d.subtitle].filter(Boolean).join(" "),
+          ])
+        )}
+        flag={{
+          label: "Hidden",
+          ids: demos.filter((d) => !d.published).map((d) => d.id),
+        }}
+      >
         {demos.map((demo) => (
           <div key={demo.id}>
             <details className="group rounded-xl border border-white/10 bg-white/[0.04] transition-colors hover:border-white/20 open:border-gold/30 open:bg-white/[0.06]">

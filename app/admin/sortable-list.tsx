@@ -50,14 +50,16 @@ function GripIcon({ className = "" }: { className?: string }) {
 function SortableRow({
   id,
   position,
+  draggable,
   children,
 }: {
   id: string;
   position: number;
+  draggable: boolean;
   children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id });
+    useSortable({ id, disabled: !draggable });
 
   return (
     <li
@@ -72,18 +74,28 @@ function SortableRow({
         isDragging ? "z-20 opacity-90" : "",
       ].join(" ")}
     >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Position ${position}. Hold and drag to reorder, or use the arrow keys.`}
-        className="group/handle mt-2.5 grid h-7 w-7 shrink-0 cursor-grab touch-none place-items-center rounded-full border border-white/10 bg-white/[0.04] font-mono text-xs text-white/45 transition-colors hover:border-gold/50 hover:text-gold focus-visible:border-gold/50 focus-visible:text-gold active:cursor-grabbing"
-      >
-        {/* The number is the useful thing at rest; the grip appears on hover
-            to say it's draggable, without cluttering the list with grips. */}
-        <span className="group-hover/handle:hidden">{position}</span>
-        <GripIcon className="hidden h-4 w-4 group-hover/handle:block" />
-      </button>
+      {draggable ? (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Position ${position}. Hold and drag to reorder, or use the arrow keys.`}
+          className="group/handle mt-2.5 grid h-7 w-7 shrink-0 cursor-grab touch-none place-items-center rounded-full border border-white/10 bg-white/[0.04] font-mono text-xs text-white/45 transition-colors hover:border-gold/50 hover:text-gold focus-visible:border-gold/50 focus-visible:text-gold active:cursor-grabbing"
+        >
+          {/* The number is the useful thing at rest; the grip appears on hover
+              to say it's draggable, without cluttering the list with grips. */}
+          <span className="group-hover/handle:hidden">{position}</span>
+          <GripIcon className="hidden h-4 w-4 group-hover/handle:block" />
+        </button>
+      ) : (
+        // Filtered: still show the position, but not as something you can grab.
+        <span
+          aria-hidden="true"
+          className="mt-2.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/[0.06] font-mono text-xs text-white/25"
+        >
+          {position}
+        </span>
+      )}
 
       <div className="min-w-0 flex-1">{children}</div>
     </li>
@@ -95,16 +107,26 @@ export default function SortableList({
   children,
   action,
   grid = false,
+  search,
+  flag,
+  noun = "rows",
 }: {
   /** Row ids in their current saved order. Must match children order. */
   ids: string[];
   children: React.ReactNode;
   action: (ids: string[]) => Promise<ActionResult>;
   grid?: boolean;
+  /** id → text to match a search box against. Omit for no search. */
+  search?: Record<string, string>;
+  /** An optional one-click filter, e.g. titles with no description yet. */
+  flag?: { label: string; ids: string[] };
+  noun?: string;
 }) {
   const [order, setOrder] = useState(ids);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [flagOnly, setFlagOnly] = useState(false);
 
   // A save elsewhere on the page re-renders the server component with fresh
   // ids; without this the list would keep showing the order from mount.
@@ -147,11 +169,75 @@ export default function SortableList({
     });
   }
 
+  const needle = query.trim().toLowerCase();
+  const flagged = new Set(flag?.ids ?? []);
+  const visible = order.filter((id) => {
+    if (flagOnly && !flagged.has(id)) return false;
+    if (!needle) return true;
+    return (search?.[id] ?? "").toLowerCase().includes(needle);
+  });
+
+  /**
+   * Reordering is only meaningful over the whole list.
+   *
+   * Dragging within a filtered subset would renumber positions from that
+   * subset and quietly reshuffle everything hidden — so filtering turns
+   * dragging off rather than doing something surprising.
+   */
+  const filtering = flagOnly || needle.length > 0;
+
   return (
     <>
+      {(search || flag) && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {search && (
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search ${noun}…`}
+              aria-label={`Search ${noun}`}
+              className="w-full max-w-xs rounded-lg border border-white/15 bg-[#160f20] px-3 py-2 text-sm text-white placeholder:text-white/35 sm:w-auto"
+            />
+          )}
+          {flag && flag.ids.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setFlagOnly((v) => !v)}
+              aria-pressed={flagOnly}
+              className={[
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                flagOnly
+                  ? "border-gold bg-gold/20 text-gold"
+                  : "border-white/15 bg-white/[0.04] text-white/60 hover:border-gold/40 hover:text-gold",
+              ].join(" ")}
+            >
+              {flag.label} ({flag.ids.length})
+            </button>
+          )}
+          {filtering && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setFlagOnly(false);
+              }}
+              className="text-xs text-white/45 underline-offset-4 hover:text-gold hover:underline"
+            >
+              Clear
+            </button>
+          )}
+          <span className="ml-auto text-xs text-white/40">
+            {visible.length} of {order.length}
+          </span>
+        </div>
+      )}
+
       <p className="mb-3 flex items-center gap-2 text-xs text-white/40">
         <GripIcon className="h-3.5 w-3.5" />
-        The number is the position on the site. Drag a handle to reorder.
+        {filtering
+          ? "Clear the filter to reorder — dragging a filtered list would move the rows you can't see."
+          : "The number is the position on the site. Drag a handle to reorder."}
         {pending && <span className="text-gold">Saving…</span>}
         {error && (
           <span role="alert" className="text-[#ffb4b4]">
@@ -160,6 +246,12 @@ export default function SortableList({
         )}
       </p>
 
+      {visible.length === 0 && (
+        <p className="rounded-xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
+          Nothing matches.
+        </p>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -167,7 +259,7 @@ export default function SortableList({
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={order}
+          items={visible}
           strategy={grid ? rectSortingStrategy : verticalListSortingStrategy}
         >
           <ul
@@ -175,8 +267,16 @@ export default function SortableList({
               grid ? "grid grid-cols-1 items-start gap-2.5 xl:grid-cols-2" : "space-y-2"
             }
           >
-            {order.map((id, index) => (
-              <SortableRow key={id} id={id} position={index + 1}>
+            {visible.map((id) => (
+              <SortableRow
+                key={id}
+                id={id}
+                // The real position in the full list, not the position within
+                // the filtered view — otherwise a search would renumber
+                // everything and the numbers would stop meaning anything.
+                position={order.indexOf(id) + 1}
+                draggable={!filtering}
+              >
                 {rowById.get(id)}
               </SortableRow>
             ))}

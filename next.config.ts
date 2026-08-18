@@ -1,16 +1,15 @@
 import type { NextConfig } from "next";
+import { REMOTE_IMAGE_HOSTS } from "./lib/image-hosts";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      // Audible cover art. The books pipeline stores Amazon's own image URLs,
-      // so covers are the one thing that stays remote — re-hosting them would
-      // mean re-downloading 21+ covers every time the sync route runs.
-      { protocol: "https", hostname: "m.media-amazon.com" },
-      { protocol: "https", hostname: "images-na.ssl-images-amazon.com" },
-      // Covers uploaded through the admin land in Supabase Storage.
-      { protocol: "https", hostname: "flddisogifvawenbyvln.supabase.co" },
-    ],
+    // Single source of truth, shared with the admin's cover validation — see
+    // lib/image-hosts.ts. A host missing here doesn't error anywhere obvious;
+    // it just makes the optimizer return 400 and the card render alt text.
+    remotePatterns: REMOTE_IMAGE_HOSTS.map((hostname) => ({
+      protocol: "https" as const,
+      hostname,
+    })),
   },
 
   experimental: {

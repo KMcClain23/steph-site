@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { slugify } from "@/lib/books";
 import { requireAdmin } from "@/lib/admin-auth";
+import { REMOTE_IMAGE_HOSTS, isAllowedImageUrl } from "@/lib/image-hosts";
 import { readAudioDuration, uploadCover, uploadDemoAudio } from "@/lib/storage";
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase";
 
@@ -118,6 +119,16 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
     coverUrl = up.url;
   }
   if (!coverUrl) return { ok: false, error: "A cover image is required." };
+  // A cover from an unlisted host renders as broken alt text with no error
+  // anywhere — next/image simply returns 400. Say so at the point of entry.
+  if (!isAllowedImageUrl(coverUrl)) {
+    return {
+      ok: false,
+      error:
+        `That cover URL is hosted somewhere the site cannot load images from. Upload the image instead, or use a URL on: ${REMOTE_IMAGE_HOSTS.join(", ")}.`,
+    };
+  }
+
 
   const { data: row, error } = await supabase
     .from("books")
@@ -353,6 +364,16 @@ export async function createBook(
   if (!coverUrl) {
     return { ok: false, error: "Add a cover — either upload an image or paste a URL." };
   }
+  // A cover from an unlisted host renders as broken alt text with no error
+  // anywhere — next/image simply returns 400. Say so at the point of entry.
+  if (!isAllowedImageUrl(coverUrl)) {
+    return {
+      ok: false,
+      error:
+        `That cover URL is hosted somewhere the site cannot load images from. Upload the image instead, or use a URL on: ${REMOTE_IMAGE_HOSTS.join(", ")}.`,
+    };
+  }
+
 
   // slug is unique and NOT NULL, so resolve collisions before inserting
   // rather than letting Postgres reject the row with a constraint error.

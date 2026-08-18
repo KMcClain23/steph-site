@@ -215,7 +215,21 @@ export default async function BooksAdminPage() {
         </div>
       </details>
 
-      <SortableList ids={books.map((b) => b.id)} action={reorderBooks}>
+      <SortableList
+        ids={books.map((b) => b.id)}
+        action={reorderBooks}
+        noun="titles"
+        search={Object.fromEntries(
+          books.map((b) => [
+            b.id,
+            [b.title, b.author, b.narrator_credit].filter(Boolean).join(" "),
+          ])
+        )}
+        flag={{
+          label: "Needs a description",
+          ids: books.filter((b) => !b.description?.trim()).map((b) => b.id),
+        }}
+      >
         {books.map((book) => (
           <div key={book.id}>
             {/*
