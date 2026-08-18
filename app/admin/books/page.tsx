@@ -224,8 +224,8 @@ export default async function BooksAdminPage() {
               <details> rather than React state: it's keyboard accessible and
               Ctrl-F findable for free, and the page stays a server component.
             */}
-            <details className="group rounded-xl border border-white/10 bg-white/[0.04] open:bg-white/[0.06]">
-              <summary className="flex cursor-pointer list-none items-center gap-3 p-3 [&::-webkit-details-marker]:hidden">
+            <details className="group rounded-xl border border-white/10 bg-white/[0.04] transition-colors hover:border-white/20 open:border-gold/30 open:bg-white/[0.06]">
+              <summary className="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 [&::-webkit-details-marker]:hidden">
                 <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-black/40">
                   {hasRealCover(book.cover_url) && (
                     <Image

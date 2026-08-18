@@ -138,24 +138,27 @@ export default async function DemosAdminPage() {
       <SortableList ids={demos.map((d) => d.id)} action={reorderDemos} grid>
         {demos.map((demo) => (
           <div key={demo.id}>
-            <details className="group h-full rounded-xl border border-white/10 bg-white/[0.04] open:bg-white/[0.06]">
-              <summary className="flex cursor-pointer list-none items-center gap-3 p-3 [&::-webkit-details-marker]:hidden">
+            <details className="group rounded-xl border border-white/10 bg-white/[0.04] transition-colors hover:border-white/20 open:border-gold/30 open:bg-white/[0.06]">
+              <summary className="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-display text-sm font-semibold text-white">
+                  <p className="truncate font-display text-sm font-semibold leading-tight text-white">
                     {[demo.title, demo.title_secondary].filter(Boolean).join(" — ")}
                   </p>
-                  <p className="truncate text-xs text-white/50">
-                    {demo.subtitle ?? "—"}
+                  {/* The subtitle can hold a newline; keep it to one line here
+                      so every collapsed row is the same height. */}
+                  <p className="truncate text-xs leading-tight text-white/45">
+                    {demo.subtitle?.replace(/\n/g, " · ") || "No subtitle"}
                   </p>
                 </div>
-                <span className="shrink-0 font-mono text-xs text-white/45">
-                  {mmss(demo.duration_seconds)}
-                </span>
+
                 {!demo.published && (
-                  <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-white/60">
+                  <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-white/50">
                     Hidden
                   </span>
                 )}
+                <span className="shrink-0 font-mono text-xs tabular-nums text-white/40">
+                  {mmss(demo.duration_seconds)}
+                </span>
                 <Chevron />
               </summary>
 
@@ -217,19 +220,6 @@ export default async function DemosAdminPage() {
                         name="subtitle"
                         rows={2}
                         defaultValue={demo.subtitle ?? ""}
-                        className={field}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelCls} htmlFor={`order-${demo.id}`}>
-                        Sort order
-                      </label>
-                      <input
-                        id={`order-${demo.id}`}
-                        name="sort_order"
-                        type="number"
-                        min={0}
-                        defaultValue={demo.sort_order}
                         className={field}
                       />
                     </div>
