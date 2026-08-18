@@ -1,8 +1,9 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase";
-import { createDemo, deleteDemo, updateDemo } from "../actions";
+import { createDemo, deleteDemo, reorderDemos, updateDemo } from "../actions";
 import ActionForm from "../save-button";
 import DeleteDemoButton from "./delete-button";
+import SortableList from "../sortable-list";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,6 @@ export default async function DemosAdminPage() {
 
   const demos = (data ?? []) as Row[];
   const live = demos.filter((d) => d.published).length;
-  const nextSortOrder = demos.length
-    ? Math.max(...demos.map((d) => d.sort_order)) + 10
-    : 0;
 
   return (
     <div>
@@ -113,42 +111,13 @@ export default async function DemosAdminPage() {
                 <label className={labelCls} htmlFor="new-demo-subtitle">
                   Subtitle
                 </label>
-                <input
+                <textarea
                   id="new-demo-subtitle"
                   name="subtitle"
-                  placeholder="Dialect Work"
+                  rows={2}
+                  placeholder={"Dialect Work"}
                   className={field}
                 />
-              </div>
-              <div>
-                <label className={labelCls} htmlFor="new-demo-order">
-                  Sort order
-                </label>
-                <input
-                  id="new-demo-order"
-                  name="sort_order"
-                  type="number"
-                  min={0}
-                  defaultValue={nextSortOrder}
-                  className={field}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelCls} htmlFor="new-demo-audio">
-                  MP3 <span className="text-gold">*</span>
-                </label>
-                <input
-                  id="new-demo-audio"
-                  name="audio"
-                  type="file"
-                  accept="audio/mpeg,.mp3"
-                  required
-                  className={fileCls}
-                />
-                <p className="mt-1 text-xs text-white/40">
-                  Under 25MB. The length is read from the file on upload, so the
-                  card can show it without visitors downloading the audio.
-                </p>
               </div>
               <label className="flex items-center gap-2 text-sm text-white/80">
                 <input
@@ -166,9 +135,9 @@ export default async function DemosAdminPage() {
 
       {/* Two columns on wide screens — the cards are short, so a single
           column left most of the page empty and made reordering a scroll. */}
-      <ul className="grid gap-3 lg:grid-cols-2">
+      <SortableList ids={demos.map((d) => d.id)} action={reorderDemos} grid>
         {demos.map((demo) => (
-          <li key={demo.id}>
+          <div key={demo.id}>
             <details className="group h-full rounded-xl border border-white/10 bg-white/[0.04] open:bg-white/[0.06]">
               <summary className="flex cursor-pointer list-none items-center gap-3 p-3 [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0 flex-1">
@@ -235,9 +204,18 @@ export default async function DemosAdminPage() {
                       <label className={labelCls} htmlFor={`sub-${demo.id}`}>
                         Subtitle
                       </label>
-                      <input
+                      {/*
+                        A textarea, not an input. One subtitle is genuinely two
+                        lines — "1st Person POV" / "American" — and the public
+                        card renders it with whitespace-pre-line. An <input>
+                        can't hold a newline, so editing that demo in one would
+                        have silently flattened it to "1st Person POVAmerican"
+                        the first time the row was saved.
+                      */}
+                      <textarea
                         id={`sub-${demo.id}`}
                         name="subtitle"
+                        rows={2}
                         defaultValue={demo.subtitle ?? ""}
                         className={field}
                       />
@@ -294,9 +272,9 @@ export default async function DemosAdminPage() {
                 </div>
               </div>
             </details>
-          </li>
+          </div>
         ))}
-      </ul>
+      </SortableList>
     </div>
   );
 }

@@ -2,7 +2,8 @@ import Image from "next/image";
 import { hasRealCover } from "@/lib/books";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase";
-import { createBook, updateBook } from "../actions";
+import { createBook, reorderBooks, updateBook } from "../actions";
+import SortableList from "../sortable-list";
 import ActionForm from "../save-button";
 
 export const dynamic = "force-dynamic";
@@ -67,9 +68,6 @@ export default async function BooksAdminPage() {
 
   const books = (data ?? []) as Row[];
   const missing = books.filter((b) => !b.description?.trim()).length;
-  const nextSortOrder = books.length
-    ? Math.max(...books.map((b) => b.sort_order)) + 10
-    : 0;
 
   return (
     <div>
@@ -203,19 +201,6 @@ export default async function BooksAdminPage() {
                   className={field}
                 />
               </div>
-              <div>
-                <label className={labelCls} htmlFor="new-order">
-                  Sort order
-                </label>
-                <input
-                  id="new-order"
-                  name="sort_order"
-                  type="number"
-                  min={0}
-                  defaultValue={nextSortOrder}
-                  className={field}
-                />
-              </div>
               <label className="flex items-end gap-2 pb-2 text-sm text-white/80">
                 <input
                   type="checkbox"
@@ -230,9 +215,9 @@ export default async function BooksAdminPage() {
         </div>
       </details>
 
-      <ul className="space-y-2">
+      <SortableList ids={books.map((b) => b.id)} action={reorderBooks}>
         {books.map((book) => (
-          <li key={book.id}>
+          <div key={book.id}>
             {/*
               Collapsed by default. Twenty-two expanded edit forms is a wall of
               inputs to scroll past when you only came to change one of them.
@@ -337,19 +322,6 @@ export default async function BooksAdminPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelCls} htmlFor={`order-${book.id}`}>
-                        Sort order (lower shows first)
-                      </label>
-                      <input
-                        id={`order-${book.id}`}
-                        name="sort_order"
-                        type="number"
-                        min={0}
-                        defaultValue={book.sort_order}
-                        className={field}
-                      />
-                    </div>
-                    <div>
                       <label className={labelCls} htmlFor={`cover-${book.id}`}>
                         Cover URL
                       </label>
@@ -429,9 +401,9 @@ export default async function BooksAdminPage() {
                 </ActionForm>
               </div>
             </details>
-          </li>
+          </div>
         ))}
-      </ul>
+      </SortableList>
     </div>
   );
 }

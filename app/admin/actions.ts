@@ -84,7 +84,6 @@ const BookUpdate = z.object({
   cover_url: z.string().max(1000).optional().default(""),
   audible_url: z.string().max(1000).optional().default(""),
   siren_url: z.string().max(1000).optional().default(""),
-  sort_order: z.coerce.number().int().min(0).max(100000),
   published: z.coerce.boolean(),
   manual: z.coerce.boolean(),
 });
@@ -100,7 +99,6 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
     audible_url: formData.get("audible_url") ?? "",
     siren_url: formData.get("siren_url") ?? "",
     release_date: formData.get("release_date") ?? "",
-    sort_order: formData.get("sort_order") ?? 0,
     published: formData.get("published") === "on",
     manual: formData.get("manual") === "on",
   });
@@ -130,7 +128,6 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
       audible_url: d.audible_url.trim() || null,
       siren_url: d.siren_url.trim() || null,
       release_date: d.release_date ? toPipelineDate(d.release_date) : null,
-      sort_order: d.sort_order,
       published: d.published,
       manual: d.manual,
     })
@@ -151,11 +148,25 @@ const DemoFields = z.object({
   title: z.string().min(1).max(200),
   title_secondary: z.string().max(200).optional().default(""),
   subtitle: z.string().max(200).optional().default(""),
-  sort_order: z.coerce.number().int().min(0).max(100000),
   published: z.coerce.boolean(),
 });
 
 const DemoUpdate = DemoFields.extend({ id: z.string().uuid() });
+
+/**
+ * Where a newly added row goes: the end of the list.
+ *
+ * Order is set by dragging, so nothing asks for a number any more — but the
+ * column is still NOT NULL and a new row has to land somewhere sensible.
+ */
+async function nextSortOrder(table: "demos" | "books"): Promise<number> {
+  const { data } = await createServiceRoleClient()
+    .from(table)
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  return ((data?.[0]?.sort_order as number | undefined) ?? -10) + 10;
+}
 
 /** An <input type="file"> that was left empty still arrives as a 0-byte File. */
 function fileOrNull(value: FormDataEntryValue | null): File | null {
@@ -173,7 +184,6 @@ export async function updateDemo(
     title: formData.get("title"),
     title_secondary: formData.get("title_secondary") ?? "",
     subtitle: formData.get("subtitle") ?? "",
-    sort_order: formData.get("sort_order") ?? 0,
     published: formData.get("published") === "on",
   });
   if (!parsed.success) return { ok: false, error: "A demo needs a title." };
@@ -183,7 +193,6 @@ export async function updateDemo(
     title: d.title.trim(),
     title_secondary: d.title_secondary.trim() || null,
     subtitle: d.subtitle.trim() || null,
-    sort_order: d.sort_order,
     published: d.published,
   };
 
@@ -219,7 +228,6 @@ export async function createDemo(
     title: formData.get("title"),
     title_secondary: formData.get("title_secondary") ?? "",
     subtitle: formData.get("subtitle") ?? "",
-    sort_order: formData.get("sort_order") || 0,
     published: formData.get("published") === "on",
   });
   if (!parsed.success) return { ok: false, error: "A demo needs a title." };
@@ -239,7 +247,7 @@ export async function createDemo(
     // Parsed here so the card can show a real length without the browser
     // downloading the file to find out.
     duration_seconds: await readAudioDuration(audio),
-    sort_order: d.sort_order,
+    sort_order: await nextSortOrder("demos"),
     published: d.published,
   });
 
@@ -296,7 +304,6 @@ const BookCreate = z.object({
   release_date: z.string().max(20).optional().default(""),
   narrator_credit: z.string().max(200).optional().default(""),
   description: z.string().max(4000).optional().default(""),
-  sort_order: z.coerce.number().int().min(0).max(100000),
   published: z.coerce.boolean(),
 });
 
@@ -326,7 +333,6 @@ export async function createBook(
     release_date: formData.get("release_date") ?? "",
     narrator_credit: formData.get("narrator_credit") ?? "",
     description: formData.get("description") ?? "",
-    sort_order: formData.get("sort_order") || 0,
     published: formData.get("published") === "on",
   });
   if (!parsed.success) {
@@ -370,7 +376,7 @@ export async function createBook(
     narrator_credit: d.narrator_credit.trim() || null,
     description: d.description.trim() || null,
     co_narrators: [],
-    sort_order: d.sort_order,
+    sort_order: await nextSortOrder("books"),
     published: d.published,
     manual: true,
   });
@@ -389,4 +395,46 @@ export async function createBook(
   revalidatePath(`/narrated/${slug}`);
   revalidatePath("/admin/books");
   return { ok: true };
+}
+
+/**
+ * Persist a drag-to-reorder.
+ *
+ * Positions are rewritten as index * 10 rather than 0,1,2 — the gaps leave
+ * room to slot something in by hand later without renumbering the whole list,
+ * and they match what /api/books/sync already writes.
+ */
+async function reorder(
+  table: "demos" | "books",
+  ids: string[]
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = z.array(z.string().uuid()).min(1).max(500).safeParse(ids);
+  if (!parsed.success) return { ok: false, error: "Invalid order." };
+
+  const supabase = createServiceRoleClient();
+
+  // One update per row. A bulk upsert would need every NOT NULL column in the
+  // payload, and getting that wrong would blank real data to reorder a list.
+  const results = await Promise.all(
+    parsed.data.map((id, index) =>
+      supabase.from(table).update({ sort_order: index * 10 }).eq("id", id)
+    )
+  );
+
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: failed.error.message };
+
+  revalidatePath("/");
+  revalidatePath(`/admin/${table}`);
+  return { ok: true };
+}
+
+export async function reorderDemos(ids: string[]): Promise<ActionResult> {
+  return reorder("demos", ids);
+}
+
+export async function reorderBooks(ids: string[]): Promise<ActionResult> {
+  return reorder("books", ids);
 }
