@@ -27,7 +27,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="mb-7 border-b border-white/[0.07] pb-5">
+    <header className="mb-7 pb-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="font-display text-2xl font-extrabold uppercase tracking-[1px] text-gold">
           {title}
@@ -37,10 +37,13 @@ export function PageHeader({
         )}
       </div>
       {children && (
-        <div className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">
+        <div className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60">
           {children}
         </div>
       )}
+      {/* The public site separates sections with a lit gold rule; this is
+          the same gesture, thinner. */}
+      <div className="mt-5 h-px bg-gradient-to-r from-gold/50 via-gold/12 to-transparent" />
     </header>
   );
 }
@@ -55,8 +58,10 @@ export function Card({
   tone?: "default" | "accent";
 }) {
   const tones = {
-    default: "border-white/[0.09] bg-white/[0.028]",
-    accent: "border-gold/25 bg-gold/[0.045]",
+    default:
+      "border-white/[0.08] bg-gradient-to-b from-white/[0.055] to-white/[0.02] shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_10px_30px_-18px_rgba(0,0,0,0.9)]",
+    accent:
+      "border-gold/25 bg-gradient-to-b from-gold/[0.09] to-gold/[0.03] shadow-[0_1px_0_0_rgba(196,139,54,0.14)_inset,0_10px_30px_-18px_rgba(0,0,0,0.9)]",
   };
   return (
     <div className={`rounded-xl border ${tones[tone]} ${className}`}>
@@ -84,7 +89,7 @@ export function Field({
     <div className={className}>
       <label
         htmlFor={htmlFor}
-        className="mb-1.5 block text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-white/40"
+        className="mb-1.5 block text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-white/50"
       >
         {label}
         {required && <span className="ml-1 text-gold">*</span>}
@@ -224,8 +229,37 @@ export function RowSummary({ children }: { children: React.ReactNode }) {
 
 export function Row({ children }: { children: React.ReactNode }) {
   return (
-    <details className="group overflow-hidden rounded-xl border border-white/[0.09] bg-white/[0.028] transition-colors hover:border-white/[0.16] open:border-gold/30 open:bg-white/[0.045]">
+    <details className="group overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.055] to-white/[0.02] shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset] transition-colors hover:border-white/[0.18] open:border-gold/35 open:from-gold/[0.06] open:to-white/[0.02]">
       {children}
+    </details>
+  );
+}
+
+/**
+ * The fold-away "add something" panel above each list.
+ *
+ * Exists as a component because getting it wrong is easy and the symptom is
+ * baffling: <summary> has to be the *first child* of <details>. Wrapping it in
+ * a styling div made browsers ignore it and render their own default marker —
+ * which is why this panel briefly announced itself as "Details".
+ */
+export function AddPanel({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group mb-5 overflow-hidden rounded-xl border border-gold/25 bg-gradient-to-b from-gold/[0.09] to-gold/[0.03] shadow-[0_1px_0_0_rgba(196,139,54,0.14)_inset]">
+      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 text-sm font-bold text-gold transition-colors hover:bg-gold/[0.05] [&::-webkit-details-marker]:hidden">
+        <span className="grid h-6 w-6 place-items-center rounded-full border border-gold/50 text-base leading-none">
+          +
+        </span>
+        {label}
+        <Chevron />
+      </summary>
+      <div className="border-t border-gold/20 p-5">{children}</div>
     </details>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getAdminUser } from "@/lib/admin-auth";
 import { signOut } from "./actions";
@@ -34,12 +35,23 @@ export default async function AdminLayout({
       <div className="admin-shell min-h-dvh lg:flex">
         <aside className="border-b border-white/[0.07] bg-black/25 lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r">
           <div className="flex flex-col gap-6 p-5 lg:sticky lg:top-0 lg:h-dvh">
-            <Link href="/admin" className="block">
-              <span className="block font-display text-sm font-extrabold uppercase tracking-[0.14em] text-gold">
-                Depth &amp; Dawn
-              </span>
-              <span className="mt-0.5 block text-[0.7rem] uppercase tracking-[0.2em] text-white/30">
-                Admin
+            {/* Her emblem, not a text wordmark. It's the single cheapest way
+                to make this feel like her admin rather than a dashboard. */}
+            <Link href="/admin" className="flex items-center gap-3">
+              <Image
+                src="/emblem.png"
+                alt=""
+                width={40}
+                height={40}
+                className="shrink-0 rounded-lg border border-gold/20"
+              />
+              <span>
+                <span className="block font-display text-[0.82rem] font-extrabold uppercase leading-tight tracking-[0.12em] text-gold">
+                  Depth &amp; Dawn
+                </span>
+                <span className="mt-0.5 block text-[0.62rem] uppercase tracking-[0.24em] text-white/30">
+                  Admin
+                </span>
               </span>
             </Link>
 
@@ -69,7 +81,7 @@ export default async function AdminLayout({
         </aside>
 
         <main className="min-w-0 flex-1 px-5 py-8 lg:px-10">
-          <div className="mx-auto max-w-5xl">{children}</div>
+          <div className="max-w-5xl">{children}</div>
         </main>
       </div>
     </ToastProvider>

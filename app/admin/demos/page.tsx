@@ -6,8 +6,8 @@ import FileField from "../file-field";
 import ActionForm from "../save-button";
 import SortableList from "../sortable-list";
 import {
+  AddPanel,
   Badge,
-  Card,
   Checkbox,
   Chevron,
   EmptyState,
@@ -62,17 +62,7 @@ export default async function DemosAdminPage() {
 
       {error && <ErrorNote>Couldn&rsquo;t load demos: {error.message}</ErrorNote>}
 
-      <details className="group mb-5">
-        <Card tone="accent">
-          <summary className="flex cursor-pointer list-none items-center gap-3 p-4 text-sm font-bold text-gold [&::-webkit-details-marker]:hidden">
-            <span className="grid h-6 w-6 place-items-center rounded-full border border-gold/50 text-base leading-none">
-              +
-            </span>
-            Add a demo
-            <Chevron />
-          </summary>
-
-          <div className="border-t border-gold/20 p-4">
+      <AddPanel label="Add a demo">
             <ActionForm
               action={createDemo}
               label="Add demo"
@@ -127,9 +117,7 @@ export default async function DemosAdminPage() {
                 </div>
               </div>
             </ActionForm>
-          </div>
-        </Card>
-      </details>
+      </AddPanel>
 
       {demos.length === 0 && !error && (
         <EmptyState title="No demos yet">

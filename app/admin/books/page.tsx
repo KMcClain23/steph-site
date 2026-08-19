@@ -7,8 +7,8 @@ import FileField from "../file-field";
 import ActionForm from "../save-button";
 import SortableList from "../sortable-list";
 import {
+  AddPanel,
   Badge,
-  Card,
   Checkbox,
   Chevron,
   ErrorNote,
@@ -80,17 +80,7 @@ export default async function BooksAdminPage() {
 
       {error && <ErrorNote>Couldn&rsquo;t load titles: {error.message}</ErrorNote>}
 
-      <details className="group mb-5">
-        <Card tone="accent">
-          <summary className="flex cursor-pointer list-none items-center gap-3 p-4 text-sm font-bold text-gold [&::-webkit-details-marker]:hidden">
-            <span className="grid h-6 w-6 place-items-center rounded-full border border-gold/50 text-base leading-none">
-              +
-            </span>
-            Add a title by hand
-            <Chevron />
-          </summary>
-
-          <div className="border-t border-gold/20 p-4">
+      <AddPanel label="Add a title by hand">
             <p className="mb-4 max-w-2xl text-sm leading-relaxed text-white/55">
               Most titles arrive automatically from Audible. Use this for the
               ones that can&rsquo;t — where Stephanie is credited in the
@@ -166,9 +156,7 @@ export default async function BooksAdminPage() {
                 </div>
               </div>
             </ActionForm>
-          </div>
-        </Card>
-      </details>
+      </AddPanel>
 
       <SortableList
         ids={books.map((b) => b.id)}
