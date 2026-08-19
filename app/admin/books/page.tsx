@@ -168,6 +168,7 @@ export default async function BooksAdminPage() {
             [b.title, b.author, b.narrator_credit].filter(Boolean).join(" "),
           ])
         )}
+        hidden={books.filter((b) => !b.published).map((b) => b.id)}
         flag={{
           label: "Needs a description",
           ids: books.filter((b) => !b.description?.trim()).map((b) => b.id),

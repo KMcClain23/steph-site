@@ -136,7 +136,11 @@ export default async function DemosAdminPage() {
             [d.title, d.title_secondary, d.subtitle].filter(Boolean).join(" "),
           ])
         )}
-        flag={{ label: "Hidden", ids: demos.filter((d) => !d.published).map((d) => d.id) }}
+        hidden={demos.filter((d) => !d.published).map((d) => d.id)}
+        flag={{
+          label: "Hidden",
+          ids: demos.filter((d) => !d.published).map((d) => d.id),
+        }}
       >
         {demos.map((demo) => (
           <div key={demo.id}>

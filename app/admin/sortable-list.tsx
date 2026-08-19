@@ -54,7 +54,8 @@ function SortableRow({
   children,
 }: {
   id: string;
-  position: number;
+  /** Position on the public site, or null for a row that isn't published. */
+  position: number | null;
   draggable: boolean;
   children: React.ReactNode;
 }) {
@@ -79,12 +80,23 @@ function SortableRow({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label={`Position ${position}. Hold and drag to reorder, or use the arrow keys.`}
-          className="group/handle mt-2.5 grid h-7 w-7 shrink-0 cursor-grab touch-none place-items-center rounded-full border border-white/10 bg-white/[0.04] font-mono text-xs text-white/45 transition-colors hover:border-gold/50 hover:text-gold focus-visible:border-gold/50 focus-visible:text-gold active:cursor-grabbing"
+          aria-label={
+            position === null
+              ? "Not shown on the site. Hold and drag to reorder, or use the arrow keys."
+              : `Position ${position} on the site. Hold and drag to reorder, or use the arrow keys.`
+          }
+          className={[
+            "group/handle mt-2.5 grid h-7 w-7 shrink-0 cursor-grab touch-none place-items-center rounded-full border font-mono text-xs transition-colors hover:border-gold/50 hover:text-gold focus-visible:border-gold/50 focus-visible:text-gold active:cursor-grabbing",
+            // A hidden row has no position on the site, so it shows a dash
+            // rather than a number that would be counted by nothing.
+            position === null
+              ? "border-white/[0.06] bg-transparent text-white/20"
+              : "border-white/10 bg-white/[0.04] text-white/45",
+          ].join(" ")}
         >
           {/* The number is the useful thing at rest; the grip appears on hover
               to say it's draggable, without cluttering the list with grips. */}
-          <span className="group-hover/handle:hidden">{position}</span>
+          <span className="group-hover/handle:hidden">{position ?? "–"}</span>
           <GripIcon className="hidden h-4 w-4 group-hover/handle:block" />
         </button>
       ) : (
@@ -93,7 +105,7 @@ function SortableRow({
           aria-hidden="true"
           className="mt-2.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/[0.06] font-mono text-xs text-white/25"
         >
-          {position}
+          {position ?? "–"}
         </span>
       )}
 
@@ -109,6 +121,7 @@ export default function SortableList({
   grid = false,
   search,
   flag,
+  hidden,
   noun = "rows",
 }: {
   /** Row ids in their current saved order. Must match children order. */
@@ -120,6 +133,8 @@ export default function SortableList({
   search?: Record<string, string>;
   /** An optional one-click filter, e.g. titles with no description yet. */
   flag?: { label: string; ids: string[] };
+  /** Ids that are not published, so they have no position on the site. */
+  hidden?: string[];
   noun?: string;
 }) {
   const [order, setOrder] = useState(ids);
@@ -180,6 +195,19 @@ export default function SortableList({
         setError(result.error);
       }
     });
+  }
+
+  /**
+   * The number on each handle is its position on the public site — so it
+   * counts only published rows. Numbering every row instead made the label
+   * a lie: with fourteen hidden demos at the top, the first one visitors
+   * actually see was labelled 15.
+   */
+  const hiddenSet = new Set(hidden ?? []);
+  const publicPosition = new Map<string, number>();
+  let live = 0;
+  for (const id of order) {
+    if (!hiddenSet.has(id)) publicPosition.set(id, ++live);
   }
 
   const needle = query.trim().toLowerCase();
@@ -270,7 +298,9 @@ export default function SortableList({
         <GripIcon className="h-3.5 w-3.5" />
         {filtering
           ? "Clear the filter to reorder — dragging a filtered list would move the rows you can't see."
-          : "The number is the position on the site. Drag a handle to reorder."}
+          : hiddenSet.size > 0
+            ? `The number is the position on the public site. ${hiddenSet.size} hidden ${hiddenSet.size === 1 ? "row is" : "rows are"} marked – because visitors never see them. Drag a handle to reorder.`
+            : "The number is the position on the public site. Drag a handle to reorder."}
         {pending && <span className="text-gold">Saving…</span>}
         {error && (
           <span role="alert" className="text-[#ffb4b4]">
@@ -319,7 +349,7 @@ export default function SortableList({
                 // The real position in the full list, not the position within
                 // the filtered view — otherwise a search would renumber
                 // everything and the numbers would stop meaning anything.
-                position={order.indexOf(id) + 1}
+                position={publicPosition.get(id) ?? null}
                 draggable={!filtering}
               >
                 {rowById.get(id)}
