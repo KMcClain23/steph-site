@@ -95,14 +95,16 @@ Rows flagged `manual` in Supabase are skipped, so hand-corrections survive a syn
 
 ```bash
 node scripts/generate-icons.mjs                                   # favicons + og.jpg from the brand assets
-node --env-file=.env.local scripts/backfill-demo-durations.mjs    # after adding demos
+node --env-file=.env.local scripts/backfill-demo-durations.mjs    # only for hand-inserted rows
+node --env-file=.env.local scripts/migrate-demos-to-storage.mjs   # moves any /public demo into Storage
 node scripts/books-to-sql.mjs                                     # one-off books seed
 ```
 
-**Run the duration backfill whenever you add a demo.** The player uses
-`preload="none"`, so the browser knows nothing about a track until it's played
-— the card reads its length from `demos.duration_seconds` instead. Skip the
-backfill and the new card shows elapsed time with no total.
+**Demo audio lives in Supabase Storage, not the repo.** Uploading through
+/admin parses the duration at the same time, so  stays
+populated without anyone remembering a script — which is what stops cards
+regressing to "0:00 / 0:00". The backfill script is only needed if a row is
+ever inserted by hand.
 
 ## Things worth knowing before you edit
 

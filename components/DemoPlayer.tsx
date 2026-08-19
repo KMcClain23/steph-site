@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Demo } from "@/lib/demos";
+import { downloadFilename, downloadUrl, type Demo } from "@/lib/demos";
 
 const BARS = [10, 18, 26, 14, 22, 12, 28, 16, 24, 10];
 
@@ -144,6 +144,34 @@ export default function DemoPlayer({
             ? `${formatTime(current)} / ${formatTime(duration)}`
             : formatTime(current)}
         </span>
+
+        {/*
+          Producers and casting directors keep demos on file rather than
+          streaming them from a site, so this needs to save a real file with a
+          real name. Both come from Supabase's ?download= parameter — the HTML
+          download attribute alone is ignored cross-origin and would simply
+          open the MP3 in a tab.
+        */}
+        <a
+          href={downloadUrl(demo)}
+          download={downloadFilename(demo)}
+          aria-label={`Download ${label}`}
+          title="Download"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/40 transition-colors hover:bg-white/5 hover:text-gold"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="h-4 w-4"
+          >
+            <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 18.5V19a2 2 0 002 2h12a2 2 0 002-2v-.5" />
+          </svg>
+        </a>
       </div>
 
       {/*
