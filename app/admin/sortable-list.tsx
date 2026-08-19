@@ -127,6 +127,19 @@ export default function SortableList({
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [flagOnly, setFlagOnly] = useState(false);
+  const [compact, setCompact] = useState(false);
+
+  // Remembered per list, since the right density for 24 titles is not the
+  // right density for 15 demos.
+  const densityKey = `admin-density-${noun}`;
+  useEffect(() => {
+    setCompact(localStorage.getItem(densityKey) === "compact");
+  }, [densityKey]);
+
+  const setDensity = (next: boolean) => {
+    setCompact(next);
+    localStorage.setItem(densityKey, next ? "compact" : "comfortable");
+  };
 
   // A save elsewhere on the page re-renders the server component with fresh
   // ids; without this the list would keep showing the order from mount.
@@ -227,9 +240,29 @@ export default function SortableList({
               Clear
             </button>
           )}
-          <span className="ml-auto text-xs text-white/40">
-            {visible.length} of {order.length}
-          </span>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-xs text-white/40">
+              {visible.length} of {order.length}
+            </span>
+            <div className="flex rounded-lg border border-white/12 p-0.5" role="group" aria-label="Row density">
+              {([[false, "Comfortable"], [true, "Compact"]] as const).map(([value, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setDensity(value)}
+                  aria-pressed={compact === value}
+                  className={[
+                    "rounded-md px-2.5 py-1 text-[0.68rem] font-semibold transition-colors",
+                    compact === value
+                      ? "bg-gold/15 text-gold"
+                      : "text-white/40 hover:text-white/70",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -263,8 +296,20 @@ export default function SortableList({
           strategy={grid ? rectSortingStrategy : verticalListSortingStrategy}
         >
           <ul
+            // Custom properties rather than classes: the rows are server
+            // components passed in as children, and inherited CSS variables
+            // reach them without turning any of them into client code.
+            style={
+              {
+                "--row-py": compact ? "0.375rem" : "0.7rem",
+                "--row-media": compact ? "2rem" : "3.25rem",
+                "--row-gap": compact ? "0.5rem" : "0.625rem",
+              } as React.CSSProperties
+            }
             className={
-              grid ? "grid grid-cols-1 items-start gap-2.5 xl:grid-cols-2" : "space-y-2"
+              grid
+                ? "grid grid-cols-1 items-start gap-[var(--row-gap)] xl:grid-cols-2"
+                : "space-y-[var(--row-gap)]"
             }
           >
             {visible.map((id) => (

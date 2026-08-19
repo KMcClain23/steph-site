@@ -159,7 +159,7 @@ export default async function DemosAdminPage() {
                 <Chevron />
               </RowSummary>
 
-              <div className="border-t border-white/[0.07] p-4">
+              <div className="admin-reveal border-t border-white/[0.07] p-4">
                 {/*
                   preload="metadata" so the control shows the real length as
                   soon as it renders. The public player uses preload="none"

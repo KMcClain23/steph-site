@@ -221,7 +221,7 @@ export function Chevron() {
 /** A collapsed row: consistent height, badges on the right, chevron last. */
 export function RowSummary({ children }: { children: React.ReactNode }) {
   return (
-    <summary className="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 transition-colors hover:bg-white/[0.02] [&::-webkit-details-marker]:hidden">
+    <summary className="flex cursor-pointer list-none items-center gap-3 px-3.5 py-[var(--row-py,0.7rem)] transition-colors hover:bg-white/[0.02] [&::-webkit-details-marker]:hidden">
       {children}
     </summary>
   );

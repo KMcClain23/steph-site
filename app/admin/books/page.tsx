@@ -177,9 +177,9 @@ export default async function BooksAdminPage() {
           <div key={book.id}>
             <Row>
               <RowSummary>
-                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/40">
+                <div className="relative h-[var(--row-media,3.25rem)] w-[var(--row-media,3.25rem)] shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/40 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.9)]">
                   {hasRealCover(book.cover_url) && (
-                    <Image src={book.cover_url} alt="" fill sizes="44px" className="object-cover" />
+                    <Image src={book.cover_url} alt="" fill sizes="64px" className="object-cover" />
                   )}
                 </div>
 
@@ -201,7 +201,7 @@ export default async function BooksAdminPage() {
                 <Chevron />
               </RowSummary>
 
-              <div className="border-t border-white/[0.07] p-4">
+              <div className="admin-reveal border-t border-white/[0.07] p-4">
                 <div className="mb-4">
                   <ExternalLink href={`/narrated/${book.slug}`}>
                     /narrated/{book.slug}

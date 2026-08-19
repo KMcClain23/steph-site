@@ -1,32 +1,55 @@
+import Image from "next/image";
 import Link from "next/link";
+import { hasRealCover } from "@/lib/books";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { Card, PageHeader } from "./ui";
 
 export const dynamic = "force-dynamic";
 
+type RecentBook = {
+  id: string;
+  slug: string;
+  title: string;
+  author: string;
+  cover_url: string;
+  created_at: string;
+};
+
 async function overview() {
   const db = createServiceRoleClient();
-  const count = (table: string, apply?: (q: any) => any) => {
-    const q = db.from(table).select("*", { count: "exact", head: true });
-    return apply ? apply(q) : q;
-  };
+  const head = (table: string) => db.from(table).select("*", { count: "exact", head: true });
 
-  const [inquiries, unread, books, hiddenBooks, demos, hiddenDemos, noDescription, recent] =
-    await Promise.all([
-      count("inquiries"),
-      count("inquiries", (q) => q.eq("status", "new")),
-      count("books"),
-      count("books", (q) => q.eq("published", false)),
-      count("demos"),
-      count("demos", (q) => q.eq("published", false)),
-      count("books", (q) => q.is("description", null)),
-      db
-        .from("inquiries")
-        .select("id, name, email, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(3),
-    ]);
+  const [
+    inquiries,
+    unread,
+    books,
+    hiddenBooks,
+    demos,
+    hiddenDemos,
+    noDescription,
+    recentInquiries,
+    recentBooks,
+  ] = await Promise.all([
+    head("inquiries"),
+    head("inquiries").eq("status", "new"),
+    head("books"),
+    head("books").eq("published", false),
+    head("demos"),
+    head("demos").eq("published", false),
+    head("books").is("description", null),
+    db
+      .from("inquiries")
+      .select("id, name, email, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(4),
+    db
+      .from("books")
+      .select("id, slug, title, author, cover_url, created_at")
+      .eq("published", true)
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
 
   return {
     inquiries: inquiries.count ?? 0,
@@ -36,13 +59,14 @@ async function overview() {
     demos: demos.count ?? 0,
     hiddenDemos: hiddenDemos.count ?? 0,
     noDescription: noDescription.count ?? 0,
-    recent: (recent.data ?? []) as {
+    recentInquiries: (recentInquiries.data ?? []) as {
       id: string;
       name: string;
       email: string;
       status: string;
       created_at: string;
     }[],
+    recentBooks: (recentBooks.data ?? []) as RecentBook[],
   };
 }
 
@@ -62,10 +86,10 @@ function Stat({
   return (
     <Link href={href} className="group block">
       <Card
-        className="h-full p-5 transition-colors group-hover:border-gold/35 group-hover:bg-white/[0.05]"
+        className="h-full p-5 transition-colors group-hover:border-gold/35"
         tone={alert ? "accent" : "default"}
       >
-        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-white/40">
+        <p className="text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-white/40">
           {label}
         </p>
         <p className="mt-2 font-display text-4xl font-extrabold leading-none text-gold">
@@ -74,6 +98,14 @@ function Stat({
         <p className="mt-2 text-xs text-white/40">{hint}</p>
       </Card>
     </Link>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-3 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-white/40">
+      {children}
+    </h2>
   );
 }
 
@@ -129,14 +161,48 @@ export default async function AdminHome() {
         </Card>
       )}
 
-      {o.recent.length > 0 && (
-        <section className="mt-8">
-          <h2 className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-white/40">
-            Latest inquiries
-          </h2>
+      {/* The covers are the best-looking thing in the whole system and were
+          only ever seen as 44px thumbnails. Here they get to be the texture of
+          the page. */}
+      {o.recentBooks.length > 0 && (
+        <section className="mt-9">
+          <SectionTitle>Most recently added</SectionTitle>
+          <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+            {o.recentBooks.map((book) => (
+              <li key={book.id}>
+                <Link
+                  href={`/narrated/${book.slug}`}
+                  target="_blank"
+                  className="group block"
+                  title={`${book.title} — ${book.author}`}
+                >
+                  <div className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40 shadow-[0_6px_20px_-10px_rgba(0,0,0,1)] transition group-hover:-translate-y-1 group-hover:border-gold/45">
+                    {hasRealCover(book.cover_url) && (
+                      <Image
+                        src={book.cover_url}
+                        alt=""
+                        fill
+                        sizes="120px"
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <p className="mt-1.5 truncate text-[0.7rem] leading-tight text-white/45 group-hover:text-white/75">
+                    {book.title}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {o.recentInquiries.length > 0 && (
+        <section className="mt-9">
+          <SectionTitle>Latest inquiries</SectionTitle>
           <Card>
             <ul className="divide-y divide-white/[0.06]">
-              {o.recent.map((inq) => (
+              {o.recentInquiries.map((inq) => (
                 <li key={inq.id}>
                   <Link
                     href="/admin/inquiries"

@@ -97,6 +97,57 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Admin: opening a row
+
+   <details> can't be transitioned directly — a closed one doesn't render its
+   content at all, so there's no height to animate from. Two layers here:
+
+   1. A short fade-and-lift on the revealed panel. Works everywhere, and is
+      most of the perceived polish.
+   2. Where the browser supports it, a real height transition via
+      ::details-content and interpolate-size, which also animates on close.
+      Strictly an enhancement; nothing depends on it.
+   ───────────────────────────────────────────────────────────── */
+
+.admin-reveal {
+  animation: admin-reveal 0.22s ease-out;
+}
+
+@keyframes admin-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (interpolate-size: allow-keywords) {
+  .admin-shell {
+    interpolate-size: allow-keywords;
+  }
+
+  .admin-shell details::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 0.26s ease,
+      content-visibility 0.26s allow-discrete;
+  }
+
+  .admin-shell details[open]::details-content {
+    block-size: auto;
+  }
+
+  /* The fade would double up with a real height transition. */
+  .admin-shell .admin-reveal {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Shared surfaces
    ───────────────────────────────────────────────────────────── */
 
