@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getAdminUser } from "@/lib/admin-auth";
 import { signOut } from "./actions";
+import AdminNav from "./nav";
+import { ToastProvider } from "./toast";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -10,13 +12,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-const NAV = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/inquiries", label: "Inquiries" },
-  { href: "/admin/books", label: "Narrated Works" },
-  { href: "/admin/demos", label: "Demos" },
-];
-
 export default async function AdminLayout({
   children,
 }: {
@@ -24,52 +19,59 @@ export default async function AdminLayout({
 }) {
   const user = await getAdminUser();
 
+  // Signed out: no chrome at all, so the login page isn't wrapped in a shell
+  // full of links that would only bounce back here.
+  if (!user) {
+    return (
+      <div className="admin-shell min-h-dvh">
+        <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-dvh bg-[#0d0714]">
-      {user && (
-        <header className="border-b border-white/10 bg-black/40">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
-            <Link href="/admin" className="font-display font-semibold text-gold">
-              Depth &amp; Dawn Admin
+    <ToastProvider>
+      <div className="admin-shell min-h-dvh lg:flex">
+        <aside className="border-b border-white/[0.07] bg-black/25 lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r">
+          <div className="flex flex-col gap-6 p-5 lg:sticky lg:top-0 lg:h-dvh">
+            <Link href="/admin" className="block">
+              <span className="block font-display text-sm font-extrabold uppercase tracking-[0.14em] text-gold">
+                Depth &amp; Dawn
+              </span>
+              <span className="mt-0.5 block text-[0.7rem] uppercase tracking-[0.2em] text-white/30">
+                Admin
+              </span>
             </Link>
 
-            <nav aria-label="Admin">
-              <ul className="flex flex-wrap gap-5 text-sm">
-                {NAV.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="text-white/75 transition-colors hover:text-gold"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <AdminNav />
 
-            <div className="ml-auto flex items-center gap-4 text-sm">
+            <div className="mt-auto space-y-3 border-t border-white/[0.07] pt-4">
               <Link
                 href="/"
-                className="text-white/60 transition-colors hover:text-gold"
+                target="_blank"
+                className="block text-xs text-white/45 transition-colors hover:text-gold"
               >
-                View site ↗
+                View the site ↗
               </Link>
-              <span className="hidden text-white/40 sm:inline">{user.email}</span>
+              <p className="truncate text-xs text-white/25" title={user.email}>
+                {user.email}
+              </p>
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="rounded-lg border border-white/15 px-3 py-1.5 text-white/80 transition hover:border-gold/50 hover:text-gold"
+                  className="w-full rounded-lg border border-white/12 px-3 py-1.5 text-xs text-white/60 transition hover:border-gold/40 hover:text-gold"
                 >
                   Sign out
                 </button>
               </form>
             </div>
           </div>
-        </header>
-      )}
+        </aside>
 
-      <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
-    </div>
+        <main className="min-w-0 flex-1 px-5 py-8 lg:px-10">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
+      </div>
+    </ToastProvider>
   );
 }

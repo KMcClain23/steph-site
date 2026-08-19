@@ -80,6 +80,23 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Admin shell
+
+   Her identity, turned down. The public site leads with the photograph; the
+   admin only borrows its colour — a deep aubergine ground with a faint gold
+   wash at the top — so the two feel related without the admin becoming
+   atmospheric. Contrast stays high because this is a tool, not a page.
+   ───────────────────────────────────────────────────────────── */
+
+.admin-shell {
+  background-color: #0d0714;
+  background-image:
+    radial-gradient(90rem 40rem at 15% -10%, rgba(196, 139, 54, 0.07), transparent 60%),
+    radial-gradient(70rem 34rem at 100% 0%, rgba(140, 60, 220, 0.08), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────
    Shared surfaces
    ───────────────────────────────────────────────────────────── */
 

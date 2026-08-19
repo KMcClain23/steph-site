@@ -12,14 +12,6 @@ const nextConfig: NextConfig = {
     })),
   },
 
-  experimental: {
-    serverActions: {
-      // Server actions cap request bodies at 1MB by default, which silently
-      // rejects any cover upload and every demo MP3 — the longest reel is
-      // 3.6MB. Raised to cover the 25MB bucket limit on demos with headroom.
-      bodySizeLimit: "30mb",
-    },
-  },
 
   // Fourthwall served the contact page at /pages/contact-me, and that URL is
   // in her link-in-bio and on printed cards. Keep it alive permanently.

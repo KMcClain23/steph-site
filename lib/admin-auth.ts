@@ -30,6 +30,33 @@ export async function requireAdmin() {
   return user;
 }
 
+/** Thrown by requireAdminInAction so a save can report rather than redirect. */
+export const SESSION_EXPIRED =
+  "Your session expired, so nothing was saved. Your changes are still on screen — sign in again in another tab, then press Save.";
+
+/**
+ * Authorisation check for server actions.
+ *
+ * requireAdmin() redirects, which is right for a page load and wrong here: a
+ * redirect mid-save throws away whatever was typed into the form. Returning a
+ * result lets the action answer with a message while the browser keeps the
+ * unsaved text exactly where it is.
+ */
+export async function requireAdminInAction(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user || !isAdminEmail(user.email)) {
+    return { ok: false, error: SESSION_EXPIRED };
+  }
+  return { ok: true };
+}
+
 /** Non-redirecting variant, for rendering "signed in as" without a hard gate. */
 export async function getAdminUser() {
   const supabase = await createServerSupabaseClient();

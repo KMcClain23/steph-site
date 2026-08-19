@@ -4,9 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { slugify } from "@/lib/books";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdminInAction } from "@/lib/admin-auth";
 import { REMOTE_IMAGE_HOSTS, isAllowedImageUrl } from "@/lib/image-hosts";
-import { readAudioDuration, uploadCover, uploadDemoAudio } from "@/lib/storage";
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase";
 
 /**
@@ -25,7 +24,8 @@ const InquiryUpdate = z.object({
 });
 
 export async function updateInquiry(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const parsed = InquiryUpdate.safeParse({
     id: formData.get("id"),
@@ -47,7 +47,8 @@ export async function updateInquiry(_prev: ActionResult | null, formData: FormDa
 }
 
 export async function deleteInquiry(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const id = z.string().uuid().safeParse(formData.get("id"));
   if (!id.success) return { ok: false, error: "Invalid id." };
@@ -90,7 +91,8 @@ const BookUpdate = z.object({
 });
 
 export async function updateBook(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const parsed = BookUpdate.safeParse({
     id: formData.get("id"),
@@ -108,16 +110,10 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
   const d = parsed.data;
   const supabase = createServiceRoleClient();
 
-  // An uploaded file wins over the URL field, so choosing an image and
-  // forgetting to clear the old URL does the obvious thing rather than
-  // silently ignoring the upload.
-  let coverUrl = d.cover_url.trim();
-  const coverFile = fileOrNull(formData.get("cover_file"));
-  if (coverFile) {
-    const up = await uploadCover(coverFile, d.id);
-    if (!up.ok) return { ok: false, error: up.error };
-    coverUrl = up.url;
-  }
+  // Files are uploaded by FileField before this runs, so what arrives is a
+  // URL. An upload wins over the URL field: choosing an image and forgetting
+  // to clear the old URL should do the obvious thing.
+  const coverUrl = uploadedUrl(formData, "cover_upload") || d.cover_url.trim();
   if (!coverUrl) return { ok: false, error: "A cover image is required." };
   // A cover from an unlisted host renders as broken alt text with no error
   // anywhere — next/image simply returns 400. Say so at the point of entry.
@@ -179,16 +175,22 @@ async function nextSortOrder(table: "demos" | "books"): Promise<number> {
   return ((data?.[0]?.sort_order as number | undefined) ?? -10) + 10;
 }
 
-/** An <input type="file"> that was left empty still arrives as a 0-byte File. */
-function fileOrNull(value: FormDataEntryValue | null): File | null {
-  return value instanceof File && value.size > 0 ? value : null;
+/**
+ * The URL a FileField left in a hidden input, or "" if nothing was uploaded.
+ * Uploads run through /api/admin/upload on selection, so by the time an action
+ * sees the form the file is already stored and only its URL is in play.
+ */
+function uploadedUrl(formData: FormData, name: string): string {
+  const value = formData.get(name);
+  return typeof value === "string" ? value.trim() : "";
 }
 
 export async function updateDemo(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const parsed = DemoUpdate.safeParse({
     id: formData.get("id"),
@@ -207,14 +209,13 @@ export async function updateDemo(
     published: d.published,
   };
 
-  // Replacing the audio is optional — leave the field empty and the existing
-  // recording stays untouched.
-  const audio = fileOrNull(formData.get("audio"));
-  if (audio) {
-    const up = await uploadDemoAudio(audio, d.title);
-    if (!up.ok) return { ok: false, error: up.error };
-    patch.audio_url = up.url;
-    patch.duration_seconds = await readAudioDuration(audio);
+  // Replacing the audio is optional — leave the field empty and the
+  // existing recording stays untouched.
+  const audioUrl = uploadedUrl(formData, "audio_upload");
+  if (audioUrl) {
+    patch.audio_url = audioUrl;
+    const seconds = Number(formData.get("audio_duration"));
+    if (Number.isFinite(seconds) && seconds > 0) patch.duration_seconds = Math.round(seconds);
   }
 
   const { error } = await createServiceRoleClient()
@@ -233,7 +234,8 @@ export async function createDemo(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const parsed = DemoFields.safeParse({
     title: formData.get("title"),
@@ -244,20 +246,18 @@ export async function createDemo(
   if (!parsed.success) return { ok: false, error: "A demo needs a title." };
   const d = parsed.data;
 
-  const audio = fileOrNull(formData.get("audio"));
-  if (!audio) return { ok: false, error: "Choose an MP3 to upload." };
-
-  const up = await uploadDemoAudio(audio, d.title);
-  if (!up.ok) return { ok: false, error: up.error };
+  const audioUrl = uploadedUrl(formData, "audio_upload");
+  if (!audioUrl) return { ok: false, error: "Choose an MP3 and wait for it to finish uploading." };
+  const seconds = Number(formData.get("audio_duration"));
 
   const { error } = await createServiceRoleClient().from("demos").insert({
     title: d.title.trim(),
     title_secondary: d.title_secondary.trim() || null,
     subtitle: d.subtitle.trim() || null,
-    audio_url: up.url,
-    // Parsed here so the card can show a real length without the browser
-    // downloading the file to find out.
-    duration_seconds: await readAudioDuration(audio),
+    audio_url: audioUrl,
+    // Parsed during upload so the card shows a real length without the
+    // browser downloading the file to find out.
+    duration_seconds: Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds) : null,
     sort_order: await nextSortOrder("demos"),
     published: d.published,
   });
@@ -273,7 +273,8 @@ export async function deleteDemo(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const id = z.string().uuid().safeParse(formData.get("id"));
   if (!id.success) return { ok: false, error: "Invalid id." };
@@ -333,7 +334,8 @@ export async function createBook(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const parsed = BookCreate.safeParse({
     title: formData.get("title"),
@@ -354,13 +356,7 @@ export async function createBook(
 
   // Cover: an upload wins over a pasted URL. cover_url is NOT NULL in the
   // database, so one of the two has to be present.
-  let coverUrl = d.cover_url.trim();
-  const coverFile = fileOrNull(formData.get("cover_file"));
-  if (coverFile) {
-    const up = await uploadCover(coverFile, d.title);
-    if (!up.ok) return { ok: false, error: up.error };
-    coverUrl = up.url;
-  }
+  const coverUrl = uploadedUrl(formData, "cover_upload") || d.cover_url.trim();
   if (!coverUrl) {
     return { ok: false, error: "Add a cover — either upload an image or paste a URL." };
   }
@@ -429,7 +425,8 @@ async function reorder(
   table: "demos" | "books",
   ids: string[]
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const auth = await requireAdminInAction();
+  if (!auth.ok) return { ok: false, error: auth.error };
 
   const parsed = z.array(z.string().uuid()).min(1).max(500).safeParse(ids);
   if (!parsed.success) return { ok: false, error: "Invalid order." };
