@@ -45,6 +45,10 @@ export default async function DemosAdminPage() {
     .select(
       "id, title, title_secondary, subtitle, audio_url, duration_seconds, sort_order, published"
     )
+    // Published first, then hidden — in Postgres false sorts before true,
+    // so descending puts the live rows on top. Within each group the
+    // public sort_order still applies.
+    .order("published", { ascending: false })
     .order("sort_order", { ascending: true });
 
   const demos = (data ?? []) as DemoRow[];

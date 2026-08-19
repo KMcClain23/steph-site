@@ -58,6 +58,10 @@ export default async function BooksAdminPage() {
     .select(
       "id, slug, title, author, cover_url, audible_url, siren_url, narrator_credit, description, release_date, sort_order, published, manual"
     )
+    // Published first, then hidden — in Postgres false sorts before true,
+    // so descending puts the live rows on top. Within each group the
+    // public sort_order still applies.
+    .order("published", { ascending: false })
     .order("sort_order", { ascending: true });
 
   const books = (data ?? []) as BookRow[];
