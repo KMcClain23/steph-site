@@ -93,8 +93,10 @@ export const BOOTH = [
  * The current set is all transparent artwork, so every chip gets the glow
  * treatment (.partner-logo in globals.css) and none of them carry a plate.
  * Pink Flamingo's file shipped as an opaque grey rectangle — it read as a
- * literal grey block sitting on the panel — so its flat background was keyed
- * out to match the rest.
+ * literal grey block sitting on the panel — so the grey was keyed out to
+ * match the rest. Only the grey *outside* the flamingo's ring: the ring
+ * encloses the same flat colour, and clearing that too would have hollowed
+ * out the mark rather than freed it from its background.
  *
  * `plate: "light"` remains available per-partner, for artwork that is dark
  * ink on a solid white ground. Dropped straight onto the near-black panel
@@ -120,6 +122,7 @@ export const PARTNERS: Partner[] = [
   { name: "Penguin Random House Audio", href: "https://penguinrandomhouseaudio.com/", logo: "/partners/penguin-random-house-audio.webp" },
   { name: "OSYS Studios", href: "https://www.osysstudios.com/", logo: "/partners/osys-studios.webp" },
   { name: "Macmillan Audio", href: "https://us.macmillan.com/audio/", logo: "/partners/macmillan-audio.webp" },
+  { name: "Podium Entertainment", href: "https://podiumentertainment.com/", logo: "/partners/podium-entertainment.webp" },
   { name: "Audiobook Empire International", href: "https://audiobookempire.com/ae-international/", logo: "/partners/audiobook-empire.webp" },
   { name: "High Gravity Productions", href: "https://www.highgravityproductions.com/theteam", logo: "/partners/high-gravity.webp" },
   { name: "Fright Audio", href: "https://www.frightnightaudio.com/", logo: "/partners/fright-audio.webp" },
