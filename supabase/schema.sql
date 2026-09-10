@@ -135,3 +135,18 @@ alter table public.books add column if not exists siren_url text;
 --
 -- Created with supabase.storage.createBucket() rather than SQL; see
 -- scripts/ or recreate them in the dashboard with those limits.
+
+-- The narrated-works shelf orders by release date, newest first (see
+-- sortBooksForDisplay in lib/books.ts). release_date is the pipeline's MM-DD-YY
+-- *text*, which sorts wrong as a string, so that ordering is done in the app
+-- rather than here.
+--
+-- `pinned` is the manual override: a pinned title is held at the front of the
+-- shelf whatever its date says, in the order it was dragged in /admin/books.
+-- sort_order therefore only means anything for pinned rows now, and
+-- /api/books/sync no longer writes it — a scrape used to overwrite the whole
+-- column with the feed's own index, which would have reshuffled every pin.
+alter table public.books add column if not exists pinned boolean not null default false;
+
+create index if not exists books_published_pinned_idx
+  on public.books (published, pinned, sort_order);

@@ -20,6 +20,10 @@ export type Book = {
   co_narrators: CoNarrator[];
   rating_text: string | null;
   description: string | null;
+  /** True for titles hand-placed at the front of the shelf. See sortBooksForDisplay. */
+  pinned: boolean;
+  /** Position among the pinned titles, set by dragging in /admin/books. */
+  sort_order: number;
 };
 
 /**
@@ -85,4 +89,56 @@ export function parseRating(
  */
 export function hasRealCover(url: string): boolean {
   return !url.endsWith(".svg") && !url.includes("coverart-prod-unavailable");
+}
+
+/**
+ * The shelf reads newest-first.
+ *
+ * The pipeline stores release dates as MM-DD-YY *text*, so the database can't
+ * order them: "01-04-26" sorts before "12-30-25" as a string, which is
+ * backwards by a year. Every published title is fetched for the homepage
+ * anyway (there are a couple of dozen), so the ordering is done here on
+ * parsed dates rather than bought with a generated column and a migration.
+ */
+export function releaseTimestamp(raw: string | null): number | null {
+  if (!raw) return null;
+  const m = /^(\d{2})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  if (!m) return null;
+  const [, mm, dd, yy] = m;
+  const t = new Date(Number(`20${yy}`), Number(mm) - 1, Number(dd)).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * Display order for the narrated-works shelf.
+ *
+ * 1. Pinned titles first, in the order they were dragged in /admin/books.
+ *    Newest-first is the right default, not a rule — a cover reveal or a
+ *    pre-order deserves the front of the shelf whatever its date says.
+ * 2. Everything else by release date, newest first.
+ * 3. Titles with no usable date last rather than first. An unparseable or
+ *    missing date is missing information, and the shelf should not open on a
+ *    row of unknowns; alphabetical within that group keeps it stable.
+ *
+ * Returns a new array — callers get data straight from Supabase and should
+ * not have it mutated underneath them.
+ */
+export function sortBooksForDisplay<T extends Pick<Book, "release_date" | "pinned" | "sort_order" | "title">>(
+  books: readonly T[]
+): T[] {
+  return [...books].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (a.pinned && b.pinned) {
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+      return a.title.localeCompare(b.title);
+    }
+
+    const ta = releaseTimestamp(a.release_date);
+    const tb = releaseTimestamp(b.release_date);
+    if (ta === null && tb === null) return a.title.localeCompare(b.title);
+    if (ta === null) return 1;
+    if (tb === null) return -1;
+    if (ta !== tb) return tb - ta;
+    return a.title.localeCompare(b.title);
+  });
 }

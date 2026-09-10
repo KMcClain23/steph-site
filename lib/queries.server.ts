@@ -1,9 +1,9 @@
-import type { Book } from "@/lib/books";
+import { sortBooksForDisplay, type Book } from "@/lib/books";
 import type { Demo } from "@/lib/demos";
 import { createAnonSupabaseClient } from "@/lib/supabase";
 
 const BOOK_FIELDS =
-  "id, slug, title, author, cover_url, audible_url, siren_url, release_date, narrator_credit, co_narrators, rating_text, description";
+  "id, slug, title, author, cover_url, audible_url, siren_url, release_date, narrator_credit, co_narrators, rating_text, description, pinned, sort_order";
 
 /**
  * Public reads, server-side only. RLS exposes just the published rows, so
@@ -58,6 +58,16 @@ export async function getContentLastModified(): Promise<Date> {
   return stamps.length ? new Date(Math.max(...stamps)) : new Date();
 }
 
+/**
+ * Published titles, newest release first.
+ *
+ * The ordering can't be pushed into the query: release_date is the pipeline's
+ * MM-DD-YY text, which sorts wrong as a string, and pinned titles jump the
+ * queue regardless of date. sortBooksForDisplay owns both rules — the admin
+ * list calls the same function, so what Stephanie sees there is the order
+ * visitors get. `sort_order` is still asked for from the database, purely to
+ * make the pre-sort input deterministic.
+ */
 export async function getPublishedBooks(): Promise<Book[]> {
   const supabase = createAnonSupabaseClient();
   const { data, error } = await supabase
@@ -70,7 +80,7 @@ export async function getPublishedBooks(): Promise<Book[]> {
     console.error("Failed to load books:", error.message);
     return [];
   }
-  return (data ?? []) as Book[];
+  return sortBooksForDisplay((data ?? []) as Book[]);
 }
 
 /** One book by its public slug. Returns null so the route can render notFound(). */

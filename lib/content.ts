@@ -90,10 +90,18 @@ export const BOOTH = [
  * partner's own site, which is how the old site did it — two of them
  * (Blue Nose and Tantor) already refuse hotlinked requests.
  *
- * `plate: "light"` is for artwork that is dark ink on a solid white ground.
- * Dropped straight onto the near-black panel those read as a hard white
- * rectangle; sitting them on a deliberate white plate makes the same pixels
- * look intentional instead of broken.
+ * The current set is all transparent artwork, so every chip gets the glow
+ * treatment (.partner-logo in globals.css) and none of them carry a plate.
+ * Pink Flamingo's file shipped as an opaque grey rectangle — it read as a
+ * literal grey block sitting on the panel — so its flat background was keyed
+ * out to match the rest.
+ *
+ * `plate: "light"` remains available per-partner, for artwork that is dark
+ * ink on a solid white ground. Dropped straight onto the near-black panel
+ * those read as a hard white rectangle; sitting them on a deliberate white
+ * plate makes the same pixels look intentional instead of broken. It is also
+ * the escape hatch for any logo whose type is too dark to separate from the
+ * panel — set it on that one entry and the glow gives way to the plate.
  */
 export type Partner = {
   name: string;
@@ -103,19 +111,20 @@ export type Partner = {
 };
 
 export const PARTNERS: Partner[] = [
-  { name: "Blue Nose Audio", href: "https://www.bluenoseaudio.com/", logo: "/partners/blue-nose-audio.png" },
+  { name: "Peitho Press Audio Productions", href: "https://www.peithopress.com/", logo: "/partners/peitho-press.webp" },
   { name: "Pink Flamingo Productions", href: "https://pinkflamingoproductions.com/", logo: "/partners/pink-flamingo.webp" },
-  { name: "Royal Guard Publishing", href: "https://royalguardpublishing.com/", logo: "/partners/royal-guard.png" },
   { name: "John Marshall Media", href: "https://www.johnmarshallmedia.com/", logo: "/partners/john-marshall-media.webp" },
-  { name: "Penguin Random House Audio", href: "https://penguinrandomhouseaudio.com/", logo: "/partners/penguin-random-house-audio.svg" },
-  { name: "ACX", href: "https://www.acx.com/", logo: "/partners/acx.png" },
-  { name: "Author's Republic", href: "https://www.authorsrepublic.com/", logo: "/partners/authors-republic.png" },
+  { name: "Tantor Audio", href: "https://tantor.com/", logo: "/partners/tantor-audio.webp" },
+  { name: "Spotify", href: "https://www.spotify.com/us/audiobooks/", logo: "/partners/spotify.webp" },
+  { name: "Royal Guard Publishing", href: "https://royalguardpublishing.com/", logo: "/partners/royal-guard.webp" },
+  { name: "Penguin Random House Audio", href: "https://penguinrandomhouseaudio.com/", logo: "/partners/penguin-random-house-audio.webp" },
+  { name: "OSYS Studios", href: "https://www.osysstudios.com/", logo: "/partners/osys-studios.webp" },
+  { name: "Macmillan Audio", href: "https://us.macmillan.com/audio/", logo: "/partners/macmillan-audio.webp" },
+  { name: "Audiobook Empire International", href: "https://audiobookempire.com/ae-international/", logo: "/partners/audiobook-empire.webp" },
   { name: "High Gravity Productions", href: "https://www.highgravityproductions.com/theteam", logo: "/partners/high-gravity.webp" },
-  { name: "Tantor", href: "https://tantor.com/", logo: "/partners/tantor.jpg" },
-  { name: "Audio Sorceress", href: "https://audiosorceress.com/", logo: "/partners/audio-sorceress.png" },
-  { name: "Enchantress Bookish Brilliance", href: "https://www.enchantressbookishbrilliance.com/?m=0", logo: "/partners/enchantress.jpg" },
-  { name: "Spotify", href: "https://www.spotify.com/us/audiobooks/", logo: "/partners/spotify.png" },
-  { name: "Macmillan Audio", href: "https://us.macmillan.com/audio/", logo: "/partners/macmillan-audio.jpg", plate: "light" },
-  { name: "Podium Entertainment", href: "https://podiumentertainment.com/", logo: "/partners/podium-entertainment.svg" },
-  { name: "Fright Night Audio", href: "https://www.frightnightaudio.com/", logo: "/partners/fright-night-audio.png" },
+  { name: "Fright Audio", href: "https://www.frightnightaudio.com/", logo: "/partners/fright-audio.webp" },
+  { name: "Blue Nose Audio", href: "https://www.bluenoseaudio.com/", logo: "/partners/blue-nose-audio.webp" },
+  { name: "Audio Sorceress", href: "https://audiosorceress.com/", logo: "/partners/audio-sorceress.webp" },
+  { name: "Author's Republic", href: "https://www.authorsrepublic.com/", logo: "/partners/authors-republic.webp" },
+  { name: "ACX", href: "https://www.acx.com/", logo: "/partners/acx.webp" },
 ];

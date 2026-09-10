@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { hasRealCover } from "@/lib/books";
+import { hasRealCover, sortBooksForDisplay } from "@/lib/books";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { createBook, reorderBooks, updateBook } from "../actions";
@@ -36,6 +36,7 @@ type BookRow = {
   sort_order: number;
   published: boolean;
   manual: boolean;
+  pinned: boolean;
 };
 
 /**
@@ -56,23 +57,33 @@ export default async function BooksAdminPage() {
   const { data, error } = await createServiceRoleClient()
     .from("books")
     .select(
-      "id, slug, title, author, cover_url, audible_url, siren_url, narrator_credit, description, release_date, sort_order, published, manual"
+      "id, slug, title, author, cover_url, audible_url, siren_url, narrator_credit, description, release_date, sort_order, published, manual, pinned"
     )
-    // Published first, then hidden — in Postgres false sorts before true,
-    // so descending puts the live rows on top. Within each group the
-    // public sort_order still applies.
-    .order("published", { ascending: false })
+    // sort_order only orders the pinned titles now, so the real ordering
+    // happens below in sortBooksForDisplay. Asking for it here just makes the
+    // input to that sort deterministic.
     .order("sort_order", { ascending: true });
 
-  const books = (data ?? []) as BookRow[];
+  const rows = (data ?? []) as BookRow[];
+
+  // Published first, then hidden, and each group in the exact order the public
+  // shelf uses. This list is also the drag surface, so if it were ordered any
+  // other way, dragging a title to the top here would move it somewhere else
+  // out there.
+  const books = [
+    ...sortBooksForDisplay(rows.filter((b) => b.published)),
+    ...sortBooksForDisplay(rows.filter((b) => !b.published)),
+  ];
   const missing = books.filter((b) => !b.description?.trim()).length;
 
   return (
     <div>
       <PageHeader title="Narrated Works" count={`${books.length} titles`}>
-        Each title has its own page at{" "}
-        <code className="text-white/70">/narrated/&lt;slug&gt;</code>. A
-        description is the single biggest thing you can add — those pages have
+        The shelf runs newest release first. Drag only changes the order of
+        titles you have pinned — pin one from inside its row to hold it at the
+        front whatever its release date says. Each title also has its own page
+        at <code className="text-white/70">/narrated/&lt;slug&gt;</code>, and a
+        description is the single biggest thing you can add: those pages have
         very little unique text without one.
         {missing > 0 && (
           <>
@@ -198,6 +209,7 @@ export default async function BooksAdminPage() {
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  {book.pinned && <Badge tone="gold" title="Held at the front of the shelf">Pinned</Badge>}
                   {!book.published && <Badge>Hidden</Badge>}
                   {!book.description?.trim() && <Badge tone="gold">No description</Badge>}
                   {book.manual && <Badge title="Protected from the Audible sync">Manual</Badge>}
@@ -303,6 +315,12 @@ export default async function BooksAdminPage() {
                       defaultChecked={book.manual}
                       label="Protect from sync"
                       hint="(keeps your edits when the Audible pipeline runs)"
+                    />
+                    <Checkbox
+                      name="pinned"
+                      defaultChecked={book.pinned}
+                      label="Pin to the front"
+                      hint="(hold this title ahead of the newest releases, in the order you drag it)"
                     />
                   </div>
                 </ActionForm>

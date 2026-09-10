@@ -88,6 +88,7 @@ const BookUpdate = z.object({
   siren_url: z.string().max(1000).optional().default(""),
   published: z.coerce.boolean(),
   manual: z.coerce.boolean(),
+  pinned: z.coerce.boolean(),
 });
 
 export async function updateBook(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
@@ -104,6 +105,7 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
     release_date: formData.get("release_date") ?? "",
     published: formData.get("published") === "on",
     manual: formData.get("manual") === "on",
+    pinned: formData.get("pinned") === "on",
   });
   if (!parsed.success) return { ok: false, error: "Invalid values." };
 
@@ -137,6 +139,7 @@ export async function updateBook(_prev: ActionResult | null, formData: FormData)
       release_date: d.release_date ? toPipelineDate(d.release_date) : null,
       published: d.published,
       manual: d.manual,
+      pinned: d.pinned,
     })
     .eq("id", d.id)
     .select("slug")
@@ -435,6 +438,12 @@ async function reorder(
 
   // One update per row. A bulk upsert would need every NOT NULL column in the
   // payload, and getting that wrong would blank real data to reorder a list.
+  //
+  // For books this writes sort_order for every row, but only the pinned ones
+  // read it — the rest of the shelf is ordered by release date. Writing it
+  // unconditionally is what keeps a title's dragged position meaningful the
+  // moment it *becomes* pinned, instead of it snapping to 0 alongside every
+  // other unpinned row.
   const results = await Promise.all(
     parsed.data.map((id, index) =>
       supabase.from(table).update({ sort_order: index * 10 }).eq("id", id)

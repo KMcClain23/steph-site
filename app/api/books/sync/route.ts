@@ -136,9 +136,19 @@ export async function POST(request: Request) {
     return withAuthor;
   };
 
+  // sort_order is deliberately absent.
+  //
+  // The shelf orders by release date now (lib/books.ts), and sort_order only
+  // survives as the hand-set position of *pinned* titles. Writing the feed's
+  // index back into it — which is what this used to do — would silently
+  // reshuffle every pin on the next scrape. Leaving the column out of the
+  // payload means an upsert updates everything else and leaves the pinning
+  // alone; genuinely new rows take the column default.
+  //
+  // `pinned` is absent for the same reason: it is Stephanie's, not the feed's.
   const rows = feed.books
     .filter((b) => !manual.has(bookKey(b.title, b.author)))
-    .map((b, i) => ({
+    .map((b) => ({
       slug: slugFor(b.title, b.author),
       title: b.title,
       author: b.author,
@@ -151,7 +161,6 @@ export async function POST(request: Request) {
       reviews: b.reviews ?? null,
       credit_note: b.credit_note || null,
       manual: false,
-      sort_order: i * 10,
       published: true,
     }));
 
